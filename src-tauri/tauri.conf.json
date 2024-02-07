@@ -6,7 +6,7 @@
     "distDir": "../dist"
   },
   "package": {
-    "productName": "keystache",
+    "productName": "Keystache",
     "version": "0.0.0"
   },
   "tauri": {
@@ -21,7 +21,7 @@
       {
         "fullscreen": false,
         "resizable": true,
-        "title": "keystache",
+        "title": "Keystache",
         "width": 800,
         "height": 600
       }
