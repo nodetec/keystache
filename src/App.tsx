@@ -1,5 +1,6 @@
-import { useEffect, useState, useRef } from "react";
-import { handleSignEventRequests } from "./tauriCommands";
+import { useEffect, useRef, useState } from "react";
+
+import { Button } from "./components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -7,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "./components/ui/dialog";
-import { Button } from "./components/ui/button";
+import { handleSignEventRequests } from "./tauriCommands";
 
 const App = () => {
   const [publicKey, setPublicKey] = useState("");
@@ -60,7 +61,9 @@ const App = () => {
           <DialogFooter>
             <div className="flex justify-end gap-x-4">
               <Button onClick={handleAccept}>Accept</Button>
-              <Button variant="outline" onClick={handleReject}>Reject</Button>
+              <Button variant="outline" onClick={handleReject}>
+                Reject
+              </Button>
             </div>
           </DialogFooter>
         </DialogContent>
