@@ -20,9 +20,12 @@
     "windows": [
       {
         "fullscreen": false,
-        "resizable": true,
+        "resizable": false,
         "title": "Keystache",
-        "width": 800,
+        "hiddenTitle": true,
+        "alwaysOnTop": true,
+        "width": 400,
+        "maximizable": false,
         "height": 600
       }
     ],

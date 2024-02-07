@@ -3,9 +3,9 @@ import { listen, Event } from "@tauri-apps/api/event";
 
 const getRandomInt = (max: number): number => {
   return Math.floor(Math.random() * max);
-}
+};
 
-const signEventRequestHandlers: {[key: number]: SignEventRequestHandler} = {};
+const signEventRequestHandlers: { [key: number]: SignEventRequestHandler } = {};
 
 /**
  * Register a handler for sign event requests. Any number of handlers can be registered at once.
@@ -45,24 +45,45 @@ interface UnsignedNostrEvent {
   kind: number;
   tags: string[][];
   content: string;
-};
+}
 
-type SignEventRequestHandler = (event: UnsignedNostrEvent) => Promise<boolean> | boolean;
+type SignEventRequestHandler = (
+  event: UnsignedNostrEvent,
+) => Promise<boolean> | boolean;
 
 listen("sign_event_request", async (event: Event<UnsignedNostrEvent>) => {
-  let isApproved = false;
+  let isApproved = undefined;
   for (const handler of Object.values(signEventRequestHandlers)) {
-    isApproved = await handler(event.payload);
-    if (isApproved) {
+    try {
+      isApproved = await handler(event.payload);
+      console.log("isApproved", isApproved);
+    } catch (e) {
+      console.log("Error in handler", e);
+      isApproved = false;
+    }
+
+    if (typeof isApproved === "boolean") {
       break;
     }
   }
-  respondToSignEventRequest(event.payload.id, isApproved);
-}).then(() => {
-  // TODO: Send a message to the Tauri backend to indicate that the event listener is ready.
-  // Before this, it should not send any `sign_event_request` events.
-});
 
-const respondToSignEventRequest = async (eventId: string, approved: boolean): Promise<string> => {
+  if (isApproved === undefined) {
+    isApproved = false;
+  }
+
+  respondToSignEventRequest(event.payload.id, isApproved);
+})
+  .then(() => {
+    // TODO: Send a message to the Tauri backend to indicate that the event listener is ready.
+    // Before this, it should not send any `sign_event_request` events.
+  })
+  .catch((e) => {
+    console.error(e);
+  });
+
+const respondToSignEventRequest = async (
+  eventId: string,
+  approved: boolean,
+): Promise<string> => {
   return await invoke("respond_to_sign_event_request", { eventId, approved });
 };
