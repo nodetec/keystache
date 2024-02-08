@@ -45,10 +45,6 @@ const App = () => {
     setOpen(false);
   };
 
-  const handleOpenChange = (isOpen: boolean) => {
-    setOpen(false);
-  };
-
   return (
     <>
       <div className="container">
