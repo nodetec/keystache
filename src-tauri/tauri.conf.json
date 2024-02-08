@@ -23,7 +23,6 @@
         "resizable": false,
         "title": "Keystache",
         "hiddenTitle": true,
-        "alwaysOnTop": true,
         "width": 400,
         "maximizable": false,
         "height": 600
