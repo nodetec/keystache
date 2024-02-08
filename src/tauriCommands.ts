@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api";
 import { Event, listen } from "@tauri-apps/api/event";
+
 import { type UnsignedNostrEvent } from "./types";
 
 const getRandomInt = (max: number): number => {
@@ -39,41 +40,31 @@ export const getPublicKey = async (): Promise<string> => {
   return await invoke("get_public_key");
 };
 
-
 type SignEventRequestHandler = (
   event: UnsignedNostrEvent,
 ) => Promise<boolean> | boolean;
 
 listen("sign_event_request", async (event: Event<UnsignedNostrEvent>) => {
-  let isApproved = undefined;
+  let isApproved = false;
   for (const handler of Object.values(signEventRequestHandlers)) {
-    try {
-      isApproved = await handler(event.payload);
-      console.log("isApproved", isApproved);
-    } catch (e) {
-      console.log("Error in handler", e);
-      isApproved = false;
-    }
-
-    if (typeof isApproved === "boolean") {
+    isApproved = await handler(event.payload);
+    if (isApproved) {
       break;
     }
   }
-
-  if (isApproved === undefined) {
-    isApproved = false;
-  }
-
   respondToSignEventRequest(event.payload.id, isApproved);
 })
-  .then(() => {
+  .then((unlisten) => {
+    // When vite reloads, a new event listener is created, so we need to unlisten to the old one.
+    // If we don't do this, each vite hot reload turns the old event listener into a phantom listener
+    // that has not event handlers and therefore immediately rejects all requests.
+    import.meta.hot?.on("vite:beforeUpdate", () => unlisten());
     // TODO: Send a message to the Tauri backend to indicate that the event listener is ready.
     // Before this, it should not send any `sign_event_request` events.
   })
   .catch((e) => {
     console.error(e);
   });
-
 const respondToSignEventRequest = async (
   eventId: string,
   approved: boolean,

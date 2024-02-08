@@ -28,7 +28,7 @@ const App = () => {
       });
     };
 
-    handleSignEventRequests(handleEvent);
+    return handleSignEventRequests(handleEvent);
   }, []);
 
   const handleAccept = () => {
