@@ -3,6 +3,8 @@ import { Event, listen } from "@tauri-apps/api/event";
 
 import { type UnsignedNostrEvent } from "./types";
 
+// TODO: handle listening for getPublicKey requests
+
 const getRandomInt = (max: number): number => {
   return Math.floor(Math.random() * max);
 };
