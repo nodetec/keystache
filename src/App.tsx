@@ -9,9 +9,9 @@ import {
   DialogTitle,
 } from "./components/ui/dialog";
 import { handleSignEventRequests } from "./tauriCommands";
+import { UnsignedNostrEvent } from "./types";
 
 const App = () => {
-  const [publicKey, setPublicKey] = useState("");
   const [open, setOpen] = useState(false);
   const [event, setEvent] = useState({});
   const resolveRejectRef = useRef<{
@@ -20,7 +20,7 @@ const App = () => {
   } | null>(null);
 
   useEffect(() => {
-    const handleEvent = (event: any): Promise<boolean> => {
+    const handleEvent = (event: UnsignedNostrEvent): Promise<boolean> => {
       setEvent(event);
       setOpen(true);
       return new Promise((resolve, reject) => {

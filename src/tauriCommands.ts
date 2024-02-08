@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api";
 import { Event, listen } from "@tauri-apps/api/event";
+import { type UnsignedNostrEvent } from "./types";
 
 const getRandomInt = (max: number): number => {
   return Math.floor(Math.random() * max);
@@ -38,14 +39,6 @@ export const getPublicKey = async (): Promise<string> => {
   return await invoke("get_public_key");
 };
 
-interface UnsignedNostrEvent {
-  id: string;
-  pubkey: string;
-  created_at: number;
-  kind: number;
-  tags: string[][];
-  content: string;
-}
 
 type SignEventRequestHandler = (
   event: UnsignedNostrEvent,
