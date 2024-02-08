@@ -1,11 +1,11 @@
 import { invoke } from "@tauri-apps/api";
-import { listen, Event } from "@tauri-apps/api/event";
+import { Event, listen } from "@tauri-apps/api/event";
 
 const getRandomInt = (max: number): number => {
   return Math.floor(Math.random() * max);
-}
+};
 
-const signEventRequestHandlers: {[key: number]: SignEventRequestHandler} = {};
+const signEventRequestHandlers: { [key: number]: SignEventRequestHandler } = {};
 
 /**
  * Register a handler for sign event requests. Any number of handlers can be registered at once.
@@ -45,9 +45,11 @@ interface UnsignedNostrEvent {
   kind: number;
   tags: string[][];
   content: string;
-};
+}
 
-type SignEventRequestHandler = (event: UnsignedNostrEvent) => Promise<boolean> | boolean;
+type SignEventRequestHandler = (
+  event: UnsignedNostrEvent,
+) => Promise<boolean> | boolean;
 
 listen("sign_event_request", async (event: Event<UnsignedNostrEvent>) => {
   let isApproved = false;
@@ -63,6 +65,9 @@ listen("sign_event_request", async (event: Event<UnsignedNostrEvent>) => {
   // Before this, it should not send any `sign_event_request` events.
 });
 
-const respondToSignEventRequest = async (eventId: string, approved: boolean): Promise<string> => {
+const respondToSignEventRequest = async (
+  eventId: string,
+  approved: boolean,
+): Promise<string> => {
   return await invoke("respond_to_sign_event_request", { eventId, approved });
 };

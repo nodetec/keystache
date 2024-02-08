@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import { getPublicKey } from "./tauriCommands";
 
 const App = () => {
@@ -23,6 +24,6 @@ const App = () => {
       <p>{publicKey}</p>
     </div>
   );
-}
+};
 
 export default App;
