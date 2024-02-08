@@ -9,11 +9,11 @@ import {
   DialogTitle,
 } from "./components/ui/dialog";
 import { handleSignEventRequests } from "./tauriCommands";
-import { UnsignedNostrEvent } from "./types";
+import { type UnsignedNostrEvent } from "./types";
 
 const App = () => {
   const [open, setOpen] = useState(false);
-  const [event, setEvent] = useState({});
+  const [event, setEvent] = useState<UnsignedNostrEvent | undefined>(undefined);
   const resolveRejectRef = useRef<{
     resolve: (value: boolean) => void;
     reject: (value: boolean) => void;
@@ -56,7 +56,7 @@ const App = () => {
             <DialogTitle>Sign Event?</DialogTitle>
           </DialogHeader>
           <div className="overflow-auto bg-muted">
-            <pre>{JSON.stringify(event, null, 2)}</pre>
+            <pre>{JSON.stringify(event, null, 2) ?? ""}</pre>
           </div>
           <DialogFooter>
             <div className="flex justify-end gap-x-4">
