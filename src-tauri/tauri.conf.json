@@ -23,13 +23,20 @@
         "resizable": false,
         "title": "Keystache",
         "hiddenTitle": true,
+        "height": 600,
         "width": 400,
         "maximizable": false,
-        "height": 600
+        "minimizable": false,
+        "skipTaskbar": true
       }
     ],
     "security": {
       "csp": null
+    },
+    "systemTray": {
+      "iconPath": "icons/icon.png",
+      "iconAsTemplate": false,
+      "menuOnLeftClick": false
     },
     "bundle": {
       "active": true,

@@ -3,13 +3,15 @@
 
 use async_trait::async_trait;
 use nip_70::{Nip70, Nip70Server, Nip70ServerError, RelayPolicy};
-use nostr_sdk::event::{Event, EventId, UnsignedEvent};
+use nostr_sdk::event::{Event, UnsignedEvent};
 use nostr_sdk::Keys;
 use secp256k1::XOnlyPublicKey;
 use std::collections::HashMap;
 use std::sync::Arc;
-use tauri::Manager;
+use tauri::{CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, WindowEvent};
 use tokio::sync::Mutex;
+
+const TRAY_MENU_ITEM_QUIT: &str = "quit";
 
 struct KeystacheNip70 {
     /// The key pair used to sign events.
@@ -104,11 +106,53 @@ async fn main() {
             respond_to_sign_event_request,
             get_public_key
         ])
+        .on_window_event(|global_window_event| {
+            match global_window_event.event() {
+                WindowEvent::CloseRequested { api, .. } => {
+                    // Hide the window instead of closing it.
+                    api.prevent_close();
+                    let _ = global_window_event.window().hide();
+                }
+                _ => {}
+            }
+        })
         .setup(|app| {
+            // Prevent the app from showing in the Dock on MacOS.
+            app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+
             let keystache_nip_70 = Arc::new(KeystacheNip70::new_with_generated_keys(app.handle()));
             let nip_70_server_or = Nip70Server::new(keystache_nip_70.clone()).ok();
             app.manage(keystache_nip_70);
             app.manage(nip_70_server_or);
+
+            let handle = app.handle();
+            let tray_menu = SystemTrayMenu::new()
+                .add_item(CustomMenuItem::new(TRAY_MENU_ITEM_QUIT, "Quit Keystache"));
+            SystemTray::new()
+                .with_menu(tray_menu)
+                .on_event(move |event| match event {
+                    SystemTrayEvent::LeftClick { .. } => {
+                        // Toggle visibility of the main window.
+                        // Note that `set_focus()` makes the window visible if it's hidden.
+                        if let Some(window) = handle.get_window("main") {
+                            if let Ok(is_visible) = window.is_visible() {
+                                if is_visible {
+                                    let _ = window.hide();
+                                } else {
+                                    let _ = window.set_focus();
+                                }
+                            }
+                        }
+                    }
+                    SystemTrayEvent::MenuItemClick { id, .. } => {
+                        if id == TRAY_MENU_ITEM_QUIT {
+                            handle.exit(0);
+                        }
+                    }
+                    _ => {}
+                })
+                .build(app)?;
+
             Ok(())
         })
         .run(tauri::generate_context!())
