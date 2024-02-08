@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api";
-import { listen, Event } from "@tauri-apps/api/event";
+import { Event, listen } from "@tauri-apps/api/event";
 
 const getRandomInt = (max: number): number => {
   return Math.floor(Math.random() * max);
