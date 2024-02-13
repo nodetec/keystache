@@ -6,3 +6,8 @@ export interface UnsignedNostrEvent {
   tags: string[][];
   content: string;
 }
+
+export type RegisterResponse = {
+  status: "success" | "error";
+  message: string;
+}
