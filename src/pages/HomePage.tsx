@@ -9,9 +9,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
+import QRCodeModalTrigger from "~/components/zaps/QRCodeModalTrigger";
 import useStore from "~/store";
 import { handleSignEventRequests } from "~/tauriCommands";
 import { type UnsignedNostrEvent } from "~/types";
+import { tag } from "react-nostr";
 
 const HomePage = () => {
   const [open, setOpen] = useState(false);
@@ -26,6 +28,7 @@ const HomePage = () => {
   useEffect(() => {
     const handleEvent = (event: UnsignedNostrEvent): Promise<boolean> => {
       setEvent(event);
+      console.log("new event", event);
       setOpen(true);
       return new Promise((resolve, reject) => {
         resolveRejectRef.current = { resolve, reject };
@@ -65,6 +68,7 @@ const HomePage = () => {
             }}
           />
         )}
+        {event?.kind === 9734 && <QRCodeModalTrigger event={event} />}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

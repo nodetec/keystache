@@ -10,4 +10,4 @@ export interface UnsignedNostrEvent {
 export type RegisterResponse = {
   status: "success" | "error";
   message: string;
-}
+};
