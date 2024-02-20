@@ -36,7 +36,6 @@ const HomePage = () => {
   useEffect(() => {
     const handleEvent = (event: UnsignedNostrEvent): Promise<boolean> => {
       setEvent(event);
-      console.log("new event", event);
       setOpen(true);
       return new Promise((resolve, reject) => {
         resolveRejectRef.current = { resolve, reject };
@@ -48,7 +47,6 @@ const HomePage = () => {
 
   useEffect(() => {
     const handleEvent = (invoice: string): Promise<PayInvoiceResponse> => {
-      console.log("new invoice", invoice);
       setInvoice(invoice);
       setOpen(true);
       return new Promise((resolve, reject) => {

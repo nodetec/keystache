@@ -1,3 +1,9 @@
+/**
+ * This file implements the types declared in ~/types/window.d.ts
+ * as a wrapper around window.nostr methods that are commonly used
+ * in react-nostr and other libraries.
+ */
+
 import { invoke } from "@tauri-apps/api/tauri";
 import { nip19 } from "nostr-tools";
 

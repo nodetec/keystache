@@ -1,3 +1,7 @@
+/**
+ * This file declares the types for the window.nostr method wrapper,
+ * which is implemented in ~/lib/nostr.ts
+ */
 interface Window {
   nostr: Nostr;
 }
