@@ -11,16 +11,24 @@ import {
 } from "~/components/ui/dialog";
 import QRCodeModalTrigger from "~/components/zaps/QRCodeModalTrigger";
 import useStore from "~/store";
-import { handleSignEventRequests } from "~/tauriCommands";
-import { type UnsignedNostrEvent } from "~/types";
-import { tag } from "react-nostr";
+import {
+  handlePayInvoiceRequests,
+  handleSignEventRequests,
+} from "~/tauriCommands";
+import { type PayInvoiceResponse, type UnsignedNostrEvent } from "~/types";
 
 const HomePage = () => {
   const [open, setOpen] = useState(false);
   const [event, setEvent] = useState<UnsignedNostrEvent | undefined>(undefined);
+  const [invoice, setInvoice] = useState<string | undefined>(undefined);
   const resolveRejectRef = useRef<{
     resolve: (value: boolean) => void;
     reject: (value: boolean) => void;
+  } | null>(null);
+
+  const resolveRejectInvoiceRef = useRef<{
+    resolve: (value: PayInvoiceResponse) => void;
+    reject: (value: PayInvoiceResponse) => void;
   } | null>(null);
 
   const { pubkey } = useStore();
@@ -37,6 +45,19 @@ const HomePage = () => {
 
     return handleSignEventRequests(handleEvent);
   }, []);
+
+  useEffect(() => {
+    const handleEvent = (invoice: string): Promise<PayInvoiceResponse> => {
+      console.log("new invoice", invoice);
+      setInvoice(invoice);
+      setOpen(true);
+      return new Promise((resolve, reject) => {
+        resolveRejectInvoiceRef.current = { resolve, reject };
+      });
+    };
+
+    return handlePayInvoiceRequests(handleEvent);
+  });
 
   const handleAccept = () => {
     if (resolveRejectRef.current) {
@@ -68,7 +89,7 @@ const HomePage = () => {
             }}
           />
         )}
-        {event?.kind === 9734 && <QRCodeModalTrigger event={event} />}
+        {invoice && <QRCodeModalTrigger invoice={invoice} />}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>

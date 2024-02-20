@@ -2,17 +2,11 @@ import { useState } from "react";
 
 import { Button } from "~/components/ui/button";
 import QRCodeModal from "~/components/zaps/QRCodeModal";
-import { UnsignedNostrEvent } from "~/types";
-
-/** 
- *  This component is just a simple temp trigger to easily open 
- *  QRCodeModal for ease of testing.
-/*/
 
 type Props = {
-  event: UnsignedNostrEvent;
+  invoice: string;
 };
-const QRCodeModalTrigger = ({ event }: Props) => {
+const QRCodeModalTrigger = ({ invoice }: Props) => {
   const [qrCodeOpen, setQRCodeOpen] = useState(false);
 
   const handleQRCodeOpen = (_open: boolean) => {
@@ -31,7 +25,7 @@ const QRCodeModalTrigger = ({ event }: Props) => {
       <QRCodeModal
         open={qrCodeOpen}
         handleOpen={handleQRCodeOpen}
-        event={event}
+        invoice={invoice}
       />
     </>
   );
