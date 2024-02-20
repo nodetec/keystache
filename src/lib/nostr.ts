@@ -1,11 +1,18 @@
-/**
- * This file implements the types declared in ~/types/window.d.ts
- * as a wrapper around window.nostr methods that are commonly used
- * in react-nostr and other libraries.
- */
-
 import { invoke } from "@tauri-apps/api/tauri";
 import { nip19 } from "nostr-tools";
+
+interface Window {
+  nostr: Nostr;
+}
+
+// https://github.com/nostr-protocol/nips/blob/master/07.md
+interface Nostr {
+  getPublicKey(): Promise<unknown>;
+  signEvent(event: unknown): Promise<unknown>;
+}
+
+declare const window: Window;
+declare const nostr: Nostr;
 
 window.nostr = {
   getPublicKey: async function () {
