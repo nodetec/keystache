@@ -8,6 +8,7 @@ use nip_70::{
 };
 use nostr_sdk::event::{Event, UnsignedEvent};
 use nostr_sdk::{Keys, ToBech32};
+use secp256k1::XOnlyPublicKey;
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::Arc;
@@ -60,31 +61,6 @@ impl Nip70 for KeystacheNip70 {
         Ok(public_key)
     }
 
-    async fn pay_invoice(
-        &self,
-        pay_invoice_request: PayInvoiceRequest,
-    ) -> Result<PayInvoiceResponse, Nip70ServerError> {
-        // Return early if the invoice is malformed. We don't actually
-        // need the parsed invoice, we just want to check if it's valid.
-        match Bolt11Invoice::from_str(pay_invoice_request.invoice()) {
-            Err(_) => return Ok(PayInvoiceResponse::ErrorMalformedInvoice),
-            _ => {}
-        };
-
-        let (tx, rx) = tokio::sync::oneshot::channel();
-        self.in_progress_invoice_payments
-            .lock()
-            .await
-            .insert(pay_invoice_request.invoice().to_string(), tx);
-
-        self.app_handle
-            .emit_all("pay_invoice_request", pay_invoice_request.invoice())
-            .map_err(|_err| Nip70ServerError::InternalError)?;
-
-        rx.await
-            .unwrap_or_else(|_| Err(Nip70ServerError::InternalError))
-    }
-
     async fn sign_event(&self, event: UnsignedEvent) -> Result<Event, Nip70ServerError> {
         let (tx, rx) = tokio::sync::oneshot::channel();
 
@@ -120,12 +96,60 @@ impl Nip70 for KeystacheNip70 {
         }
     }
 
+    async fn pay_invoice(
+        &self,
+        pay_invoice_request: PayInvoiceRequest,
+    ) -> Result<PayInvoiceResponse, Nip70ServerError> {
+        // Return early if the invoice is malformed. We don't actually
+        // need the parsed invoice, we just want to check if it's valid.
+        match Bolt11Invoice::from_str(pay_invoice_request.invoice()) {
+            Err(_) => return Ok(PayInvoiceResponse::ErrorMalformedInvoice),
+            _ => {}
+        };
+
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        self.in_progress_invoice_payments
+            .lock()
+            .await
+            .insert(pay_invoice_request.invoice().to_string(), tx);
+
+        self.app_handle
+            .emit_all("pay_invoice_request", pay_invoice_request.invoice())
+            .map_err(|_err| Nip70ServerError::InternalError)?;
+
+        rx.await
+            .unwrap_or_else(|_| Err(Nip70ServerError::InternalError))
+    }
+
     async fn get_relays(
         &self,
     ) -> Result<Option<std::collections::HashMap<String, RelayPolicy>>, Nip70ServerError> {
         // TODO: Implement relay support.
         Ok(None)
     }
+}
+
+#[tauri::command]
+fn register(nsec: String, npub: String) -> Value {
+    database::Database::register(nsec, npub)
+}
+
+#[tauri::command]
+async fn respond_to_sign_event_request(
+    event_id: String,
+    approved: bool,
+    state: tauri::State<'_, Arc<KeystacheNip70>>,
+) -> Result<(), ()> {
+    if let Some(tx) = state
+        .in_progress_event_signings
+        .lock()
+        .await
+        .remove(&event_id)
+    {
+        let _ = tx.send(approved);
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -154,29 +178,6 @@ async fn respond_to_pay_invoice_request(
             _ => Err(Nip70ServerError::InternalError),
         };
         let _ = tx.send(response);
-    }
-
-    Ok(())
-}
-
-#[tauri::command]
-fn register(nsec: String, npub: String) -> Value {
-    database::Database::register(nsec, npub)
-}
-
-#[tauri::command]
-async fn respond_to_sign_event_request(
-    event_id: String,
-    approved: bool,
-    state: tauri::State<'_, Arc<KeystacheNip70>>,
-) -> Result<(), ()> {
-    if let Some(tx) = state
-        .in_progress_event_signings
-        .lock()
-        .await
-        .remove(&event_id)
-    {
-        let _ = tx.send(approved);
     }
 
     Ok(())
