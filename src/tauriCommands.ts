@@ -1,7 +1,11 @@
 import { invoke } from "@tauri-apps/api";
 import { Event, listen } from "@tauri-apps/api/event";
 
-import { type UnsignedNostrEvent } from "./types";
+import {
+  type PayInvoiceRequestHandler,
+  type PayInvoiceResponse,
+  type UnsignedNostrEvent,
+} from "./types";
 
 // TODO: handle listening for getPublicKey requests
 
@@ -101,12 +105,6 @@ const respondToSignEventRequest = async (
 ): Promise<string> => {
   return await invoke("respond_to_sign_event_request", { eventId, approved });
 };
-
-type PayInvoiceResponse = "paid" | "failed" | "rejected";
-
-type PayInvoiceRequestHandler = (
-  invoice: string,
-) => Promise<PayInvoiceResponse> | PayInvoiceResponse;
 
 listen("pay_invoice_request", async (event: Event<string>) => {
   let response: PayInvoiceResponse = "rejected";
