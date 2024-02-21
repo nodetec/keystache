@@ -1,7 +1,11 @@
 import { invoke } from "@tauri-apps/api";
 import { Event, listen } from "@tauri-apps/api/event";
 
-import { type UnsignedNostrEvent } from "./types";
+import {
+  type PayInvoiceRequestHandler,
+  type PayInvoiceResponse,
+  type UnsignedNostrEvent,
+} from "./types";
 
 // TODO: handle listening for getPublicKey requests
 
