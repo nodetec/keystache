@@ -1693,10 +1693,8 @@ name = "keystache"
 version = "0.0.0"
 dependencies = [
  "async-trait",
- "lightning-invoice",
  "nip-70",
  "nostr-sdk",
- "secp256k1",
  "serde",
  "serde_json",
  "tauri",
@@ -1937,12 +1935,13 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 
 [[package]]
 name = "nip-70"
-version = "0.4.3"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c68ede14d408ca0bd2adb480abcf306be2786ab189f90dcbf7eee0b982307b5"
+checksum = "d99ee3e2fe21bdd1a4e95728c88921cbe017812a7b5a456891fa2ed674a24004"
 dependencies = [
- "anyhow",
  "async-trait",
+ "futures",
+ "lightning-invoice",
  "nostr-sdk",
  "serde",
  "serde_json",
