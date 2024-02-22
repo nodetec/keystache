@@ -120,12 +120,6 @@ const respondToSignEventRequest = async (
   return await invoke("respond_to_sign_event_request", { eventId, approved });
 };
 
-type PayInvoiceResponse = "paid" | "failed" | "rejected";
-
-type PayInvoiceRequestHandler = (
-  invoice: string,
-) => Promise<PayInvoiceResponse> | PayInvoiceResponse;
-
 listen("pay_invoice_request", async (event: Event<string>) => {
   let response: PayInvoiceResponse = "rejected";
   for (const handler of Object.values(payInvoiceRequestHandlers)) {

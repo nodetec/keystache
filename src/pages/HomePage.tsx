@@ -10,7 +10,6 @@ import {
   DialogTitle,
 } from "~/components/ui/dialog";
 import QRCodeModalTrigger from "~/components/zaps/QRCodeModalTrigger";
-import useStore from "~/store";
 import {
   getPublicKey,
   handlePayInvoiceRequests,
