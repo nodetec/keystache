@@ -70,7 +70,12 @@ export const handlePayInvoiceRequests = (handler: PayInvoiceRequestHandler) => {
  * @returns The public key of the user's Nostr account.
  */
 export const getPublicKey = async (): Promise<string> => {
-  return await invoke("get_public_key");
+  try {
+    return await invoke("get_public_key");
+  } catch (e) {
+    console.error(e);
+    throw e;
+  }
 };
 
 /**

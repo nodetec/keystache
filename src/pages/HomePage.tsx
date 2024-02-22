@@ -12,6 +12,7 @@ import {
 import QRCodeModalTrigger from "~/components/zaps/QRCodeModalTrigger";
 import useStore from "~/store";
 import {
+  getPublicKey,
   handlePayInvoiceRequests,
   handleSignEventRequests,
 } from "~/tauriCommands";
@@ -21,6 +22,7 @@ const HomePage = () => {
   const [open, setOpen] = useState(false);
   const [event, setEvent] = useState<UnsignedNostrEvent | undefined>(undefined);
   const [invoice, setInvoice] = useState<string | undefined>(undefined);
+  const [pubkey, setPubkey] = useState<string | undefined | null>(undefined);
   const resolveRejectRef = useRef<{
     resolve: (value: boolean) => void;
     reject: (value: boolean) => void;
@@ -31,7 +33,14 @@ const HomePage = () => {
     reject: (value: PayInvoiceResponse) => void;
   } | null>(null);
 
-  const { pubkey } = useStore();
+  async function setPublicKey() {
+    const response = await getPublicKey();
+    setPubkey(response);
+  }
+
+  useEffect(() => {
+    setPublicKey();
+  }, []);
 
   useEffect(() => {
     const handleEvent = (event: UnsignedNostrEvent): Promise<boolean> => {
