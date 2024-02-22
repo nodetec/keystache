@@ -1,3 +1,5 @@
+use std::sync::{Arc, Mutex};
+
 use chrono::Utc;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
@@ -5,7 +7,10 @@ use serde_json::{Error, Value};
 
 use nostr_sdk::prelude::*;
 
-pub struct Database;
+#[derive(Clone)]
+pub struct Database {
+    db_connection: Arc<Mutex<Connection>>,
+}
 
 #[derive(Serialize, Deserialize)]
 struct RegisterResponse {
@@ -32,13 +37,26 @@ impl RegisterResponse {
 }
 
 impl Database {
-    pub fn register(nsec: String, npub: String) -> Value {
-        let conn = match Connection::open("nostr_keys.db") {
+    pub fn new(app_handle: tauri::AppHandle) -> Self {
+        let app_data_dir = app_handle.path_resolver().app_data_dir().unwrap();
+
+        // Create app data directory. Toss any error, since it's ok if the directory already exists.
+        let _ = std::fs::create_dir(&app_data_dir);
+
+        let db_connection = match Connection::open(app_data_dir.join("nostr_keys.db")) {
             Ok(conn) => conn,
-            Err(e) => return RegisterResponse::error(format!("Failed to open database: {}", e)),
+            Err(e) => panic!("Failed to open database: {}", e),
         };
 
-        if let Err(e) = conn.execute(
+        Database {
+            db_connection: Arc::from(Mutex::from(db_connection)),
+        }
+    }
+
+    pub fn register(&self, nsec: String, npub: String) -> Value {
+        let db_connection = self.db_connection.lock().unwrap();
+
+        if let Err(e) = db_connection.execute(
             "CREATE TABLE IF NOT EXISTS keys (
                 id INTEGER PRIMARY KEY,
                 npub TEXT NOT NULL,
@@ -51,7 +69,7 @@ impl Database {
         }
 
         let creation_date = Utc::now().naive_utc();
-        match conn.execute(
+        match db_connection.execute(
             "INSERT INTO keys (npub, nsec, creation_date) VALUES (?1, ?2, ?3)",
             params![
                 npub,
@@ -64,13 +82,10 @@ impl Database {
         }
     }
 
-    pub fn get_nsec_by_npub(npub: &str) -> Result<String, String> {
-        let conn = match Connection::open("nostr_keys.db") {
-            Ok(conn) => conn,
-            Err(e) => return Err(format!("Failed to open database: {}", e)),
-        };
+    pub fn get_nsec_by_npub(&self, npub: &str) -> Result<String, String> {
+        let db_connection = self.db_connection.lock().unwrap();
 
-        let mut stmt = match conn.prepare("SELECT nsec FROM keys WHERE npub = ?1") {
+        let mut stmt = match db_connection.prepare("SELECT nsec FROM keys WHERE npub = ?1") {
             Ok(stmt) => stmt,
             Err(e) => return Err(format!("Failed to prepare query: {}", e)),
         };
@@ -88,13 +103,11 @@ impl Database {
     }
 
     // TODO: we need to find a better way to do this
-    pub fn get_first_nsec() -> Result<String, String> {
-        let conn = match Connection::open("nostr_keys.db") {
-            Ok(conn) => conn,
-            Err(e) => return Err(format!("Failed to open database: {}", e)),
-        };
+    pub fn get_first_nsec(&self) -> Result<String, String> {
+        let db_connection = self.db_connection.lock().unwrap();
 
-        let mut stmt = match conn.prepare("SELECT nsec FROM keys ORDER BY id ASC LIMIT 1") {
+        let mut stmt = match db_connection.prepare("SELECT nsec FROM keys ORDER BY id ASC LIMIT 1")
+        {
             Ok(stmt) => stmt,
             Err(e) => return Err(format!("Failed to prepare query: {}", e)),
         };

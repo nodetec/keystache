@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use async_trait::async_trait;
+use database::Database;
 use nip_70::{
     run_nip70_server, Nip70, Nip70ServerError, PayInvoiceRequest, PayInvoiceResponse, RelayPolicy,
 };
@@ -30,16 +31,19 @@ struct KeystacheNip70 {
 
     /// Handle to the Tauri application. Used to emit events.
     app_handle: tauri::AppHandle,
+
+    db_connection: Database,
 }
 
 impl KeystacheNip70 {
     // TODO: Remove this method and implement a way to load & store keys on disk.
-    fn new_with_generated_keys(app_handle: tauri::AppHandle) -> Self {
+    fn new_with_generated_keys(app_handle: tauri::AppHandle, db_connection: Database) -> Self {
         Self {
             keys: Keys::generate(),
             in_progress_event_signings: Mutex::new(HashMap::new()),
             in_progress_invoice_payments: Mutex::new(HashMap::new()),
             app_handle,
+            db_connection,
         }
     }
 }
@@ -47,7 +51,7 @@ impl KeystacheNip70 {
 #[async_trait]
 impl Nip70 for KeystacheNip70 {
     async fn get_public_key(&self) -> Result<XOnlyPublicKey, Nip70ServerError> {
-        let nsec = database::Database::get_first_nsec().unwrap();
+        let nsec = self.db_connection.get_first_nsec().unwrap();
 
         let secret_key = SecretKey::from_bech32(nsec).unwrap();
 
@@ -65,7 +69,7 @@ impl Nip70 for KeystacheNip70 {
 
         println!("npub: {}", npub);
 
-        let nsec = database::Database::get_nsec_by_npub(&npub).unwrap();
+        let nsec = self.db_connection.get_nsec_by_npub(&npub).unwrap();
 
         println!("nsec: {:?}", nsec);
 
@@ -122,8 +126,8 @@ impl Nip70 for KeystacheNip70 {
 }
 
 #[tauri::command]
-fn register(nsec: String, npub: String) -> Value {
-    database::Database::register(nsec, npub)
+fn register(nsec: String, npub: String, state: tauri::State<'_, Database>) -> Value {
+    state.register(nsec, npub)
 }
 
 #[tauri::command]
@@ -195,10 +199,15 @@ async fn main() {
             register,
         ])
         .setup(|app| {
-            let keystache_nip_70 = Arc::new(KeystacheNip70::new_with_generated_keys(app.handle()));
+            let database = Database::new(app.handle());
+            let keystache_nip_70 = Arc::new(KeystacheNip70::new_with_generated_keys(
+                app.handle(),
+                database.clone(),
+            ));
             let nip_70_server_or = run_nip70_server(keystache_nip_70.clone()).ok();
             app.manage(keystache_nip_70);
             app.manage(nip_70_server_or);
+            app.manage(database);
             Ok(())
         })
         .run(tauri::generate_context!())
