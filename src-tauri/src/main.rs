@@ -2,15 +2,13 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use async_trait::async_trait;
-use lightning_invoice::Bolt11Invoice;
 use nip_70::{
-    Nip70, Nip70Server, Nip70ServerError, PayInvoiceRequest, PayInvoiceResponse, RelayPolicy,
+    run_nip70_server, Nip70, Nip70ServerError, PayInvoiceRequest, PayInvoiceResponse, RelayPolicy,
 };
 use nostr_sdk::event::{Event, UnsignedEvent};
+use nostr_sdk::key::XOnlyPublicKey;
 use nostr_sdk::Keys;
-use secp256k1::XOnlyPublicKey;
 use std::collections::HashMap;
-use std::str::FromStr;
 use std::sync::Arc;
 use tauri::Manager;
 use tokio::sync::Mutex;
@@ -75,21 +73,16 @@ impl Nip70 for KeystacheNip70 {
         &self,
         pay_invoice_request: PayInvoiceRequest,
     ) -> Result<PayInvoiceResponse, Nip70ServerError> {
-        // Return early if the invoice is malformed. We don't actually
-        // need the parsed invoice, we just want to check if it's valid.
-        match Bolt11Invoice::from_str(pay_invoice_request.invoice()) {
-            Err(_) => return Ok(PayInvoiceResponse::ErrorMalformedInvoice),
-            _ => {}
-        };
+        let invoice = pay_invoice_request.invoice().to_string();
 
         let (tx, rx) = tokio::sync::oneshot::channel();
         self.in_progress_invoice_payments
             .lock()
             .await
-            .insert(pay_invoice_request.invoice().to_string(), tx);
+            .insert(invoice.clone(), tx);
 
         self.app_handle
-            .emit_all("pay_invoice_request", pay_invoice_request.invoice())
+            .emit_all("pay_invoice_request", invoice)
             .map_err(|_err| Nip70ServerError::InternalError)?;
 
         rx.await
@@ -173,7 +166,7 @@ async fn main() {
         ])
         .setup(|app| {
             let keystache_nip_70 = Arc::new(KeystacheNip70::new_with_generated_keys(app.handle()));
-            let nip_70_server_or = Nip70Server::new(keystache_nip_70.clone()).ok();
+            let nip_70_server_or = run_nip70_server(keystache_nip_70.clone()).ok();
             app.manage(keystache_nip_70);
             app.manage(nip_70_server_or);
             Ok(())
