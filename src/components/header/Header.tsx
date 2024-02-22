@@ -1,13 +1,13 @@
 import useStore from "~/store";
 import { Menu } from "lucide-react";
 import { shortNpub } from "react-nostr";
-import { useLocation } from "react-router-dom";
+// import { useLocation } from "react-router-dom";
 
 export default function Header() {
   const { pubkey } = useStore();
 
   // TODO: hide when on /login
-  let location = useLocation();
+  // let location = useLocation();
 
   return (
     <div className="border-b px-4">
