@@ -69,6 +69,16 @@ export const getPublicKey = async (): Promise<string> => {
   return await invoke("get_public_key");
 };
 
+/**
+ * Set the nSec of the user's Nostr account in the Tauri backend.
+ * @param nsec The new nSec to set.
+ * @returns A promise that resolves when the nSec has been set.
+ * @throws If the nSec is invalid or the Tauri database fails to update.
+ */
+export const setNsec = async (nsec: string): Promise<void> => {
+  return await invoke("set_nsec", { nsec });
+}
+
 type SignEventRequestHandler = (
   event: UnsignedNostrEvent,
 ) => Promise<boolean> | boolean;
