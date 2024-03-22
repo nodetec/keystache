@@ -10,8 +10,8 @@ use nip_70::{
 };
 use nostr_sdk::event::{Event, UnsignedEvent};
 use nostr_sdk::key::{KeyPair, Secp256k1, SecretKey, XOnlyPublicKey};
-use nostr_sdk::Keys;
 use nostr_sdk::FromBech32;
+use nostr_sdk::Keys;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::Manager;
@@ -54,10 +54,13 @@ impl KeystacheNip70 {
         // Wipe all existing keypairs.
         // TODO: Hardcoding the limit here isn't very robust. Should we allow for
         // setting it to `None` to allow for iterating through all keypairs?
-        for keypair in database.list_keypairs(10_000, 0).map_err(|_| Nip70ServerError::InternalError)? {
-            database.remove_keypair(&keypair.x_only_public_key().0).map_err(|_| {
-                Nip70ServerError::InternalError
-            })?;
+        for keypair in database
+            .list_keypairs(10_000, 0)
+            .map_err(|_| Nip70ServerError::InternalError)?
+        {
+            database
+                .remove_keypair(&keypair.x_only_public_key().0)
+                .map_err(|_| Nip70ServerError::InternalError)?;
         }
 
         // Save the new keypair.
@@ -205,8 +208,12 @@ async fn set_nsec(
     nsec: String,
     state: tauri::State<'_, Arc<KeystacheNip70>>,
 ) -> anyhow::Result<(), String> {
-    let keypair = SecretKey::from_bech32(nsec).map_err(|_| "Error parsing nsec")?.keypair(&Secp256k1::new());
-    state.set_keypair(keypair).map_err(|_| "Error setting keypair")?;
+    let keypair = SecretKey::from_bech32(nsec)
+        .map_err(|_| "Error parsing nsec")?
+        .keypair(&Secp256k1::new());
+    state
+        .set_keypair(keypair)
+        .map_err(|_| "Error setting keypair")?;
     Ok(())
 }
 
