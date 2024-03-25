@@ -1,6 +1,8 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod database;
+
 use async_trait::async_trait;
 use nip_70::{
     run_nip70_server, Nip70, Nip70ServerError, PayInvoiceRequest, PayInvoiceResponse, RelayPolicy,
