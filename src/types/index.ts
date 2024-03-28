@@ -6,9 +6,3 @@ export interface UnsignedNostrEvent {
   tags: string[][];
   content: string;
 }
-
-export type PayInvoiceResponse = "paid" | "failed" | "rejected";
-
-export type PayInvoiceRequestHandler = (
-  invoice: string,
-) => Promise<PayInvoiceResponse> | PayInvoiceResponse;
