@@ -10,11 +10,10 @@ import {
   FormMessage,
 } from "~/components/ui/form";
 import { Input } from "~/components/ui/input";
-import { getPublicKey, nip19 } from "nostr-tools";
+import { nip19 } from "nostr-tools";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useNavigate } from "react-router-dom";
-import useStore from "~/store";
 import { setNsec } from "~/tauriCommands";
 
 const isValidNsec = (nsec: string) => {
@@ -34,7 +33,6 @@ const formSchema = z.object({
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const navigate = useNavigate();
-  const { setPubkey } = useStore();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -45,16 +43,9 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
-    const { nsec } = values;
-    console.log("nsec: ", nsec);
-
-    const secretKeyUint8 = nip19.decode(nsec).data as Uint8Array;
-    const publicKey = getPublicKey(secretKeyUint8);
 
     try {
-      await setNsec(nsec);
-
-      setPubkey(publicKey);
+      await setNsec(values.nsec);
       navigate("/");
     } finally {
       setIsLoading(false);
