@@ -80,18 +80,18 @@ export const setNsec = async (nsec: string): Promise<void> => {
 }
 
 type SignEventRequestHandler = (
-  event: UnsignedNostrEvent,
+  event: UnsignedNostrEvent, userPubkey: string
 ) => Promise<boolean> | boolean;
 
-listen("sign_event_request", async (event: Event<UnsignedNostrEvent>) => {
+listen("sign_event_request", async (event: Event<[UnsignedNostrEvent, string]>) => {
   let isApproved = false;
   for (const handler of Object.values(signEventRequestHandlers)) {
-    isApproved = await handler(event.payload);
+    isApproved = await handler(...event.payload);
     if (isApproved) {
       break;
     }
   }
-  respondToSignEventRequest(event.payload.id, isApproved);
+  respondToSignEventRequest(event.payload[0].id, isApproved);
 })
   .then((unlisten) => {
     // When vite reloads, a new event listener is created, so we need to unlisten to the old one.

@@ -11,8 +11,7 @@ use nip_55::KeyManager;
 use nostr_sdk::key::SecretKey;
 use nostr_sdk::nips::nip46;
 use nostr_sdk::secp256k1::{Keypair, Secp256k1};
-use nostr_sdk::PublicKey;
-use nostr_sdk::{EventId, FromBech32};
+use nostr_sdk::{EventId, FromBech32, PublicKey, ToBech32};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tauri::Manager;
@@ -120,7 +119,7 @@ impl Nip46RequestApprover for KeystacheRequestApprover {
     ) -> Nip46RequestApproval {
         // TODO: IMPORTANT!!! Currently we ignore all but the first request. We should handle all requests.
         // TODO: We should use `_user_pubkey` and pass it to the frontend.
-        let (request, _user_pubkey) = match requests.into_iter().next() {
+        let (request, user_pubkey) = match requests.into_iter().next() {
             Some(request) => request,
             None => return Nip46RequestApproval::Reject,
         };
@@ -150,7 +149,10 @@ impl Nip46RequestApprover for KeystacheRequestApprover {
 
         if self
             .app_handle
-            .emit_all("sign_event_request", event.clone())
+            .emit_all(
+                "sign_event_request",
+                (event, user_pubkey.to_bech32().unwrap()),
+            )
             .is_err()
         {
             return Nip46RequestApproval::Reject;

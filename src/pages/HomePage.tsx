@@ -20,6 +20,7 @@ import { type PayInvoiceResponse, type UnsignedNostrEvent } from "~/types";
 const HomePage = () => {
   const [open, setOpen] = useState(false);
   const [event, setEvent] = useState<UnsignedNostrEvent | undefined>(undefined);
+  const [userPubkey, setUserPubkey] = useState<string | undefined>(undefined);
   const [invoice, setInvoice] = useState<string | undefined>(undefined);
   const [pubkey, setPubkey] = useState<string | undefined | null>(undefined);
   const resolveRejectRef = useRef<{
@@ -50,15 +51,14 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    const handleEvent = (event: UnsignedNostrEvent): Promise<boolean> => {
+    return handleSignEventRequests((event, userPubkey): Promise<boolean> => {
       setEvent(event);
+      setUserPubkey(userPubkey);
       setOpen(true);
       return new Promise((resolve, reject) => {
         resolveRejectRef.current = { resolve, reject };
       });
-    };
-
-    return handleSignEventRequests(handleEvent);
+    });
   }, []);
 
   useEffect(() => {
@@ -107,12 +107,16 @@ const HomePage = () => {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="h-[20rem] max-w-[22rem]">
+        <DialogContent className="max-h-[30rem] max-w-[22rem]">
           <DialogHeader>
             <DialogTitle>Sign Event?</DialogTitle>
           </DialogHeader>
           <div className="overflow-auto bg-muted">
             <pre>{JSON.stringify(event, null, 2) ?? ""}</pre>
+          </div>
+          As User
+          <div className="overflow-auto bg-muted">
+            {userPubkey}
           </div>
           <DialogFooter>
             <div className="flex justify-end gap-x-4">
