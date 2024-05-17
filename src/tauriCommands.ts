@@ -111,29 +111,19 @@ const respondToSignEventRequest = async (
   return await invoke("respond_to_sign_event_request", { eventId, approved });
 };
 
-type PayInvoiceResponse = "paid" | "failed" | "rejected";
-
 type PayInvoiceRequestHandler = (
   invoice: string,
-) => Promise<PayInvoiceResponse> | PayInvoiceResponse;
+) => Promise<boolean> | boolean;
 
 listen("pay_invoice_request", async (event: Event<string>) => {
-  let response: PayInvoiceResponse = "rejected";
+  let isApproved = false;
   for (const handler of Object.values(payInvoiceRequestHandlers)) {
-    let newResponse = await handler(event.payload);
-
-    // If rejected by a handler, ignore it and continue to the next handler.
-    if (newResponse === "rejected") {
-      continue;
-    }
-
-    response = newResponse;
-
-    if (response === "paid") {
+    isApproved = await handler(event.payload);
+    if (isApproved) {
       break;
     }
   }
-  respondToPayInvoiceRequest(event.payload, response);
+  respondToPayInvoiceRequest(event.payload, isApproved);
 })
   .then((unlisten) => {
     // When vite reloads, a new event listener is created, so we need to unlisten to the old one.
@@ -148,7 +138,7 @@ listen("pay_invoice_request", async (event: Event<string>) => {
   });
 const respondToPayInvoiceRequest = async (
   invoice: string,
-  outcome: PayInvoiceResponse,
+  approved: boolean,
 ): Promise<string> => {
-  return await invoke("respond_to_pay_invoice_request", { invoice, outcome });
+  return await invoke("respond_to_pay_invoice_request", { invoice, approved });
 };

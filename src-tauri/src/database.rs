@@ -1,5 +1,6 @@
 use chrono::Utc;
-use nostr_sdk::prelude::*;
+use nostr_sdk::secp256k1::{Keypair, Secp256k1};
+use nostr_sdk::{FromBech32, PublicKey, SecretKey, ToBech32};
 use rusqlite::{params, Connection};
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -84,14 +85,17 @@ impl Database {
     }
 
     /// Saves a keypair to the database.
-    pub fn save_keypair(&self, keypair: &KeyPair) -> anyhow::Result<()> {
+    pub fn save_keypair(&self, keypair: &Keypair) -> anyhow::Result<()> {
         let db_connection = self.db_connection.lock().unwrap();
+
+        let public_key: PublicKey = keypair.x_only_public_key().0.into();
+        let secret_key: SecretKey = keypair.secret_key().into();
 
         db_connection.execute(
             "INSERT INTO keys (npub, nsec, create_time) VALUES (?1, ?2, ?3)",
             params![
-                keypair.x_only_public_key().0.to_bech32()?,
-                keypair.secret_key().to_bech32()?,
+                public_key.to_bech32()?,
+                secret_key.to_bech32()?,
                 Utc::now().to_rfc3339()
             ],
         )?;
@@ -103,7 +107,7 @@ impl Database {
     /// If the keypair is associated with any registered applications, the
     /// caller must first unregister the applications or swap their
     /// application identities or an error will be returned.
-    pub fn remove_keypair(&self, public_key: &XOnlyPublicKey) -> anyhow::Result<()> {
+    pub fn remove_keypair(&self, public_key: &PublicKey) -> anyhow::Result<()> {
         let db_connection = self.db_connection.lock().unwrap();
 
         db_connection.execute(
@@ -116,7 +120,7 @@ impl Database {
 
     /// Lists keypairs in the database. Ordered by id in ascending order.
     /// Use limit and offset parameters for pagination.
-    pub fn list_keypairs(&self, limit: u64, offset: u64) -> anyhow::Result<Vec<KeyPair>> {
+    pub fn list_keypairs(&self, limit: u64, offset: u64) -> anyhow::Result<Vec<Keypair>> {
         let db_connection = self.db_connection.lock().unwrap();
 
         let mut stmt =
@@ -137,7 +141,7 @@ impl Database {
 
     /// Lists public keys of keypairs in the database. Ordered by id in ascending order.
     /// Use limit and offset parameters for pagination.
-    pub fn list_public_keys(&self, limit: u64, offset: u64) -> anyhow::Result<Vec<XOnlyPublicKey>> {
+    pub fn list_public_keys(&self, limit: u64, offset: u64) -> anyhow::Result<Vec<PublicKey>> {
         let db_connection = self.db_connection.lock().unwrap();
 
         let mut stmt =
@@ -148,19 +152,19 @@ impl Database {
 
         let mut npubs = Vec::new();
         for npub in npub_iter {
-            npubs.push(XOnlyPublicKey::from_bech32(npub?)?);
+            npubs.push(PublicKey::from_bech32(npub?)?);
         }
 
         Ok(npubs)
     }
 
     /// Returns the first keypair in the database, or `None` if there are no keypairs.
-    pub fn get_first_keypair(&self) -> anyhow::Result<Option<KeyPair>> {
+    pub fn get_first_keypair(&self) -> anyhow::Result<Option<Keypair>> {
         Ok(self.list_keypairs(1, 0)?.first().cloned())
     }
 
     /// Returns the public key of the first keypair in the database, or `None` if there are no keypairs.
-    pub fn get_first_public_key(&self) -> anyhow::Result<Option<XOnlyPublicKey>> {
+    pub fn get_first_public_key(&self) -> anyhow::Result<Option<PublicKey>> {
         Ok(self.list_public_keys(1, 0)?.first().cloned())
     }
 
@@ -168,8 +172,8 @@ impl Database {
     pub fn register_application(
         &self,
         display_name: Option<String>,
-        application_npub: &XOnlyPublicKey,
-        application_identity: &XOnlyPublicKey,
+        application_npub: &PublicKey,
+        application_identity: &PublicKey,
     ) -> anyhow::Result<()> {
         let db_connection = self.db_connection.lock().unwrap();
 
@@ -182,7 +186,7 @@ impl Database {
     }
 
     /// Removes a registered application from the database.
-    pub fn unregister_application(&self, application_npub: &XOnlyPublicKey) -> anyhow::Result<()> {
+    pub fn unregister_application(&self, application_npub: &PublicKey) -> anyhow::Result<()> {
         let db_connection = self.db_connection.lock().unwrap();
 
         db_connection.execute(
@@ -196,8 +200,8 @@ impl Database {
     /// Switches the keypair that a registered application is operating as.
     pub fn swap_application_identity(
         &self,
-        application_npub: &XOnlyPublicKey,
-        new_application_identity: &XOnlyPublicKey,
+        application_npub: &PublicKey,
+        new_application_identity: &PublicKey,
     ) -> anyhow::Result<()> {
         let db_connection = self.db_connection.lock().unwrap();
 
@@ -222,7 +226,7 @@ impl Database {
         &self,
         limit: u64,
         offset: u64,
-    ) -> anyhow::Result<Vec<(Option<String>, XOnlyPublicKey, XOnlyPublicKey)>> {
+    ) -> anyhow::Result<Vec<(Option<String>, PublicKey, PublicKey)>> {
         let db_connection = self.db_connection.lock().unwrap();
 
         let mut stmt = db_connection.prepare(
@@ -244,8 +248,8 @@ impl Database {
             let (display_name, application_npub, application_identity_string) = application?;
             applications.push((
                 display_name,
-                XOnlyPublicKey::from_bech32(application_npub)?,
-                XOnlyPublicKey::from_bech32(application_identity_string)?,
+                PublicKey::from_bech32(application_npub)?,
+                PublicKey::from_bech32(application_identity_string)?,
             ));
         }
 
@@ -267,9 +271,9 @@ mod tests {
             .to_path_buf()
     }
 
-    fn get_random_keypair() -> KeyPair {
+    fn get_random_keypair() -> Keypair {
         let secp = Secp256k1::new();
-        KeyPair::new(&secp, &mut thread_rng())
+        Keypair::new(&secp, &mut thread_rng())
     }
 
     #[test]
@@ -377,11 +381,12 @@ mod tests {
         assert_eq!(db.list_keypairs(1, 0).unwrap(), vec![keypair]);
         assert_eq!(
             db.list_public_keys(1, 0).unwrap(),
-            vec![keypair.x_only_public_key().0]
+            vec![keypair.x_only_public_key().0.into()]
         );
 
         // Remove the keypair from the database.
-        db.remove_keypair(&keypair.x_only_public_key().0).unwrap();
+        db.remove_keypair(&keypair.x_only_public_key().0.into())
+            .unwrap();
 
         // Check that the keypair was removed.
         assert!(db.list_keypairs(1, 0).unwrap().is_empty());
@@ -406,7 +411,9 @@ mod tests {
         let keypair = get_random_keypair();
 
         // Removing a keypair that doesn't exist should not cause an error.
-        assert!(db.remove_keypair(&keypair.x_only_public_key().0).is_ok());
+        assert!(db
+            .remove_keypair(&keypair.x_only_public_key().0.into())
+            .is_ok());
     }
 
     #[test]
@@ -458,9 +465,9 @@ mod tests {
         let keypair_2 = get_random_keypair();
         let keypair_3 = get_random_keypair();
 
-        let pubkey_1 = keypair_1.x_only_public_key().0;
-        let pubkey_2 = keypair_2.x_only_public_key().0;
-        let pubkey_3 = keypair_3.x_only_public_key().0;
+        let pubkey_1 = keypair_1.x_only_public_key().0.into();
+        let pubkey_2 = keypair_2.x_only_public_key().0.into();
+        let pubkey_3 = keypair_3.x_only_public_key().0.into();
 
         // Add some keypairs to the database.
         db.save_keypair(&keypair_1).unwrap();
@@ -508,7 +515,8 @@ mod tests {
         assert_eq!(db.get_first_keypair().unwrap(), Some(keypair_1));
 
         // Remove the first keypair.
-        db.remove_keypair(&keypair_1.x_only_public_key().0).unwrap();
+        db.remove_keypair(&keypair_1.x_only_public_key().0.into())
+            .unwrap();
 
         // Returns the next keypair.
         assert_eq!(db.get_first_keypair().unwrap(), Some(keypair_2));
@@ -525,8 +533,8 @@ mod tests {
         let keypair_2 = get_random_keypair();
         let keypair_3 = get_random_keypair();
 
-        let pubkey_1 = keypair_1.x_only_public_key().0;
-        let pubkey_2 = keypair_2.x_only_public_key().0;
+        let pubkey_1 = keypair_1.x_only_public_key().0.into();
+        let pubkey_2 = keypair_2.x_only_public_key().0.into();
 
         // Add a keypair to the database.
         db.save_keypair(&keypair_1).unwrap();
@@ -542,7 +550,8 @@ mod tests {
         assert_eq!(db.get_first_public_key().unwrap(), Some(pubkey_1));
 
         // Remove the first keypair.
-        db.remove_keypair(&keypair_1.x_only_public_key().0).unwrap();
+        db.remove_keypair(&keypair_1.x_only_public_key().0.into())
+            .unwrap();
 
         // Returns the public key for the next keypair.
         assert_eq!(db.get_first_public_key().unwrap(), Some(pubkey_2));
@@ -558,8 +567,8 @@ mod tests {
 
         db.register_application(
             Some("display_name".to_string()),
-            &application_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         )
         .unwrap();
     }
@@ -574,8 +583,8 @@ mod tests {
 
         db.register_application(
             None,
-            &application_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         )
         .unwrap();
     }
@@ -591,14 +600,14 @@ mod tests {
 
         db.register_application(
             Some("display_name1".to_string()),
-            &application_1_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_1_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         )
         .unwrap();
         db.register_application(
             Some("display_name2".to_string()),
-            &application_2_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_2_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         )
         .unwrap();
     }
@@ -612,8 +621,8 @@ mod tests {
         // Attempting to register an application with a public key that doesn't exist should cause an error.
         let response = db.register_application(
             None,
-            &application_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         );
         assert!(response.is_err());
     }
@@ -628,16 +637,16 @@ mod tests {
 
         db.register_application(
             Some("display_name".to_string()),
-            &application_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         )
         .unwrap();
 
         // Attempting to register an application with the same application_npub should cause an error.
         let response = db.register_application(
             Some("display_name".to_string()),
-            &application_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         );
         assert!(response.is_err());
     }
@@ -652,12 +661,12 @@ mod tests {
 
         db.register_application(
             Some("display_name".to_string()),
-            &application_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         )
         .unwrap();
 
-        db.unregister_application(&application_keypair.x_only_public_key().0)
+        db.unregister_application(&application_keypair.x_only_public_key().0.into())
             .unwrap();
     }
 
@@ -667,7 +676,7 @@ mod tests {
         let application_keypair = get_random_keypair();
 
         // Attempting to unregister an application with an application_npub that doesn't exist should not cause an error.
-        let response = db.unregister_application(&application_keypair.x_only_public_key().0);
+        let response = db.unregister_application(&application_keypair.x_only_public_key().0.into());
         assert!(response.is_ok());
     }
 
@@ -683,14 +692,14 @@ mod tests {
 
         db.register_application(
             Some("display_name".to_string()),
-            &application_keypair.x_only_public_key().0,
-            &keypair_1.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair_1.x_only_public_key().0.into(),
         )
         .unwrap();
 
         db.swap_application_identity(
-            &application_keypair.x_only_public_key().0,
-            &keypair_2.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair_2.x_only_public_key().0.into(),
         )
         .unwrap();
     }
@@ -705,8 +714,8 @@ mod tests {
 
         // Attempting to swap the application identity of an application with an application_npub that doesn't exist should cause an error.
         let response = db.swap_application_identity(
-            &application_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         );
         assert!(response.is_err());
     }
@@ -723,16 +732,16 @@ mod tests {
 
         db.register_application(
             Some("display_name".to_string()),
-            &application_keypair.x_only_public_key().0,
-            &keypair_1.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair_1.x_only_public_key().0.into(),
         )
         .unwrap();
 
         // Attempting to swap the application identity of an application
         // with an npub that doesn't exist should cause an error.
         let response = db.swap_application_identity(
-            &application_keypair.x_only_public_key().0,
-            &keypair_2.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair_2.x_only_public_key().0.into(),
         );
         assert!(response.is_err());
     }
@@ -764,21 +773,21 @@ mod tests {
 
         db.register_application(
             Some("display_name1".to_string()),
-            &application_keypair_1.x_only_public_key().0,
-            &keypair_1.x_only_public_key().0,
+            &application_keypair_1.x_only_public_key().0.into(),
+            &keypair_1.x_only_public_key().0.into(),
         )
         .unwrap();
         db.register_application(
             Some("display_name2".to_string()),
-            &application_keypair_2.x_only_public_key().0,
-            &keypair_2.x_only_public_key().0,
+            &application_keypair_2.x_only_public_key().0.into(),
+            &keypair_2.x_only_public_key().0.into(),
         )
         .unwrap();
         // Register an application without a display name.
         db.register_application(
             None,
-            &application_keypair_3.x_only_public_key().0,
-            &keypair_3.x_only_public_key().0,
+            &application_keypair_3.x_only_public_key().0.into(),
+            &keypair_3.x_only_public_key().0.into(),
         )
         .unwrap();
 
@@ -789,18 +798,18 @@ mod tests {
             vec![
                 (
                     Some("display_name1".to_string()),
-                    application_keypair_1.x_only_public_key().0,
-                    keypair_1.x_only_public_key().0
+                    application_keypair_1.x_only_public_key().0.into(),
+                    keypair_1.x_only_public_key().0.into()
                 ),
                 (
                     Some("display_name2".to_string()),
-                    application_keypair_2.x_only_public_key().0,
-                    keypair_2.x_only_public_key().0
+                    application_keypair_2.x_only_public_key().0.into(),
+                    keypair_2.x_only_public_key().0.into()
                 ),
                 (
                     None,
-                    application_keypair_3.x_only_public_key().0,
-                    keypair_3.x_only_public_key().0
+                    application_keypair_3.x_only_public_key().0.into(),
+                    keypair_3.x_only_public_key().0.into()
                 )
             ]
         );
@@ -812,13 +821,13 @@ mod tests {
             vec![
                 (
                     Some("display_name1".to_string()),
-                    application_keypair_1.x_only_public_key().0,
-                    keypair_1.x_only_public_key().0
+                    application_keypair_1.x_only_public_key().0.into(),
+                    keypair_1.x_only_public_key().0.into()
                 ),
                 (
                     Some("display_name2".to_string()),
-                    application_keypair_2.x_only_public_key().0,
-                    keypair_2.x_only_public_key().0
+                    application_keypair_2.x_only_public_key().0.into(),
+                    keypair_2.x_only_public_key().0.into()
                 )
             ]
         );
@@ -829,8 +838,8 @@ mod tests {
             response,
             vec![(
                 None,
-                application_keypair_3.x_only_public_key().0,
-                keypair_3.x_only_public_key().0
+                application_keypair_3.x_only_public_key().0.into(),
+                keypair_3.x_only_public_key().0.into()
             )]
         );
 
@@ -849,17 +858,18 @@ mod tests {
 
         db.register_application(
             Some("display_name".to_string()),
-            &application_keypair.x_only_public_key().0,
-            &keypair.x_only_public_key().0,
+            &application_keypair.x_only_public_key().0.into(),
+            &keypair.x_only_public_key().0.into(),
         )
         .unwrap();
 
-        let response = db.remove_keypair(&keypair.x_only_public_key().0);
+        let response = db.remove_keypair(&keypair.x_only_public_key().0.into());
         assert!(response.is_err());
 
         // Unregister the application first, then remove the keypair.
-        db.unregister_application(&application_keypair.x_only_public_key().0)
+        db.unregister_application(&application_keypair.x_only_public_key().0.into())
             .unwrap();
-        db.remove_keypair(&keypair.x_only_public_key().0).unwrap();
+        db.remove_keypair(&keypair.x_only_public_key().0.into())
+            .unwrap();
     }
 }

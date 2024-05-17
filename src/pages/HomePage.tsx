@@ -37,6 +37,14 @@ const HomePage = () => {
     setPubkey(response);
   }
 
+  // Reject the request if the dialog is closed.
+  // Otherwise, the request will be pending forever.
+  useEffect(() => {
+    if (!open) {
+      handleReject();
+    }
+  }, [open]);
+
   useEffect(() => {
     setPublicKey();
   }, []);
