@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api";
 import { Event, listen } from "@tauri-apps/api/event";
 
-import { type UnsignedNostrEvent } from "./types";
+import { PayInvoiceRequestHandler, type UnsignedNostrEvent } from "./types";
 
 // TODO: handle listening for getPublicKey requests
 
@@ -11,7 +11,8 @@ const getRandomInt = (max: number): number => {
 
 const signEventRequestHandlers: { [key: number]: SignEventRequestHandler } = {};
 
-const payInvoiceRequestHandlers: { [key: number]: PayInvoiceRequestHandler } = {};
+const payInvoiceRequestHandlers: { [key: number]: PayInvoiceRequestHandler } =
+  {};
 
 /**
  * Register a handler for sign event requests. Any number of handlers can be registered at once.
@@ -77,21 +78,24 @@ export const getPublicKey = async (): Promise<string> => {
  */
 export const setNsec = async (nsec: string): Promise<void> => {
   return await invoke("set_nsec", { nsec });
-}
+};
 
 type SignEventRequestHandler = (
-  event: UnsignedNostrEvent, userPubkey: string
+  event: UnsignedNostrEvent,
+  userPubkey: string,
 ) => Promise<boolean> | boolean;
 
-listen("sign_event_request", async (event: Event<[UnsignedNostrEvent, string]>) => {
-  let isApproved = false;
-  for (const handler of Object.values(signEventRequestHandlers)) {
-    isApproved = await handler(...event.payload);
-    if (isApproved) {
-      break;
+listen("sign_event_request", (event: Event<[UnsignedNostrEvent, string]>) => {
+  void (async () => {
+    let isApproved = false;
+    for (const handler of Object.values(signEventRequestHandlers)) {
+      isApproved = await handler(...event.payload);
+      if (isApproved) {
+        break;
+      }
     }
-  }
-  respondToSignEventRequest(event.payload[0].id, isApproved);
+    void respondToSignEventRequest(event.payload[0].id, isApproved);
+  })();
 })
   .then((unlisten) => {
     // When vite reloads, a new event listener is created, so we need to unlisten to the old one.
@@ -111,19 +115,17 @@ const respondToSignEventRequest = async (
   return await invoke("respond_to_sign_event_request", { eventId, approved });
 };
 
-type PayInvoiceRequestHandler = (
-  invoice: string,
-) => Promise<boolean> | boolean;
-
-listen("pay_invoice_request", async (event: Event<string>) => {
-  let isApproved = false;
-  for (const handler of Object.values(payInvoiceRequestHandlers)) {
-    isApproved = await handler(event.payload);
-    if (isApproved) {
-      break;
+listen("pay_invoice_request", (event: Event<string>) => {
+  void (async () => {
+    let isApproved = false;
+    for (const handler of Object.values(payInvoiceRequestHandlers)) {
+      isApproved = await handler(event.payload);
+      if (isApproved) {
+        break;
+      }
     }
-  }
-  respondToPayInvoiceRequest(event.payload, isApproved);
+    void respondToPayInvoiceRequest(event.payload, isApproved);
+  })();
 })
   .then((unlisten) => {
     // When vite reloads, a new event listener is created, so we need to unlisten to the old one.

@@ -26,7 +26,7 @@ export default function ProtectedRoute({ children }: Props) {
   }
 
   useEffect(() => {
-    setPublicKey();
+    void setPublicKey();
   }, []);
 
   if (pubkey === null) {

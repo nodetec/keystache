@@ -15,7 +15,7 @@ import {
   handlePayInvoiceRequests,
   handleSignEventRequests,
 } from "~/tauriCommands";
-import { type PayInvoiceResponse, type UnsignedNostrEvent } from "~/types";
+import { type UnsignedNostrEvent } from "~/types";
 
 const HomePage = () => {
   const [open, setOpen] = useState(false);
@@ -26,11 +26,6 @@ const HomePage = () => {
   const resolveRejectRef = useRef<{
     resolve: (value: boolean) => void;
     reject: (value: boolean) => void;
-  } | null>(null);
-
-  const resolveRejectInvoiceRef = useRef<{
-    resolve: (value: PayInvoiceResponse) => void;
-    reject: (value: PayInvoiceResponse) => void;
   } | null>(null);
 
   async function setPublicKey() {
@@ -47,7 +42,7 @@ const HomePage = () => {
   }, [open]);
 
   useEffect(() => {
-    setPublicKey();
+    void setPublicKey();
   }, []);
 
   useEffect(() => {
@@ -62,11 +57,10 @@ const HomePage = () => {
   }, []);
 
   useEffect(() => {
-    const handleEvent = (invoice: string): Promise<PayInvoiceResponse> => {
+    const handleEvent = (invoice: string): Promise<boolean> => {
       setInvoice(invoice);
-      setOpen(true);
       return new Promise((resolve, reject) => {
-        resolveRejectInvoiceRef.current = { resolve, reject };
+        resolveRejectRef.current = { resolve, reject };
       });
     };
 
@@ -115,9 +109,7 @@ const HomePage = () => {
             <pre>{JSON.stringify(event, null, 2) ?? ""}</pre>
           </div>
           As User
-          <div className="overflow-auto bg-muted">
-            {userPubkey}
-          </div>
+          <div className="overflow-auto bg-muted">{userPubkey}</div>
           <DialogFooter>
             <div className="flex justify-end gap-x-4">
               <Button onClick={handleAccept}>Accept</Button>

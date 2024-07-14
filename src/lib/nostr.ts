@@ -20,9 +20,9 @@ window.nostr = {
     return nip19.decode(publicKey).data;
   },
   signEvent: async function (event: Event) {
-    const signedEvent = (await invoke("sign_event", {
+    const signedEvent: string = (await invoke("sign_event", {
       event: JSON.stringify(event),
-    })) as string;
+    }));
     return signedEvent;
   },
 };

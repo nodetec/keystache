@@ -6,3 +6,7 @@ export interface UnsignedNostrEvent {
   tags: string[][];
   content: string;
 }
+
+export type PayInvoiceRequestHandler = (
+  invoice: string,
+) => Promise<boolean> | boolean;

@@ -95,7 +95,7 @@ impl KeystacheRequestApprover {
         }
     }
 
-    async fn pay_invoice(&self, invoice: Bolt11Invoice) -> anyhow::Result<Nip46RequestApproval> {
+    async fn pay_invoice_request(&self, invoice: Bolt11Invoice) -> anyhow::Result<Nip46RequestApproval> {
         let invoice_string = invoice.to_string();
 
         let (tx, rx) = tokio::sync::oneshot::channel();
