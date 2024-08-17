@@ -3,7 +3,6 @@ mod schema;
 
 use diesel::connection::SimpleConnection;
 use diesel::delete;
-use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::{insert_into, prelude::*};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use model::{NewNostrKeypair, NostrKeypair};
@@ -16,50 +15,13 @@ use std::time::Duration;
 const DATABASE_NAME: &str = "keystache.sqlite";
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-#[derive(Debug)]
-struct ConnectionOptions {
-    encryption_password: String,
-    enable_wal: bool,
-    enable_foreign_keys: bool,
-    busy_timeout: Option<Duration>,
-}
-
 fn normalize_password(password: &str) -> String {
     password.replace('\'', "''")
 }
 
-impl diesel::r2d2::CustomizeConnection<SqliteConnection, diesel::r2d2::Error>
-    for ConnectionOptions
-{
-    fn on_acquire(&self, conn: &mut SqliteConnection) -> Result<(), diesel::r2d2::Error> {
-        (|| {
-            let password = normalize_password(&self.encryption_password);
-            conn.batch_execute(&format!("PRAGMA key='{password}'"))?;
-            if self.enable_wal {
-                conn.batch_execute("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;")?;
-            }
-            if self.enable_foreign_keys {
-                conn.batch_execute("PRAGMA foreign_keys = ON;")?;
-            }
-            if let Some(d) = self.busy_timeout {
-                conn.batch_execute(&format!("PRAGMA busy_timeout = {};", d.as_millis()))?;
-            }
-
-            conn.run_pending_migrations(MIGRATIONS)
-                .expect("Migration has to run successfully");
-
-            Ok(())
-        })()
-        .map_err(diesel::r2d2::Error::QueryError)
-    }
-}
-
-// TODO: Handle database migrations.
-
 /// Database handle for Keystache data.
-#[derive(Clone)]
 pub struct Database {
-    connection_pool: Pool<ConnectionManager<SqliteConnection>>,
+    connection: SqliteConnection,
 }
 
 impl Database {
@@ -70,6 +32,7 @@ impl Database {
         db_path.is_file()
     }
 
+    // TODO: Test this.
     pub fn delete() {
         let project_dirs = Self::get_project_dirs().unwrap();
         let db_path = project_dirs.data_dir().join(DATABASE_NAME);
@@ -85,7 +48,7 @@ impl Database {
     /// * `encryption_password` - The encryption password for the database.
     ///                           If there is no existing database, the encryption password will be used to create a new encrypted database.
     ///                           If there is an existing database, the encryption password will be used to unlock the database and an error will be returned if the password is incorrect.
-    pub fn open_or_create_in_app_data_dir(encryption_password: String) -> anyhow::Result<Self> {
+    pub fn open_or_create_in_app_data_dir(encryption_password: &str) -> anyhow::Result<Self> {
         let project_dirs = Self::get_project_dirs()?;
 
         Self::open_or_create(project_dirs.data_dir(), DATABASE_NAME, encryption_password)
@@ -94,7 +57,7 @@ impl Database {
     fn open_or_create(
         folder: &Path,
         file_name: &str,
-        encryption_password: impl ToString,
+        encryption_password: &str,
     ) -> anyhow::Result<Self> {
         // TODO: See if this comment is still true and if the statement below is still needed.
         // The call to `ConnectionManager::new()` below doesn't
@@ -104,26 +67,29 @@ impl Database {
             std::fs::create_dir_all(folder)?;
         }
 
-        let manager = ConnectionManager::<SqliteConnection>::new(
-            folder.join(file_name).to_str().unwrap_or_default(),
-        );
+        let mut connection =
+            SqliteConnection::establish(folder.join(file_name).to_str().unwrap_or_default())?;
 
-        let connection_pool = Pool::builder()
-            .connection_customizer(Box::new(ConnectionOptions {
-                encryption_password: encryption_password.to_string(),
-                enable_wal: true,
-                enable_foreign_keys: true,
-                busy_timeout: Some(Duration::from_secs(15)),
-            }))
-            .build(manager)?;
+        let password = normalize_password(encryption_password);
+        connection.batch_execute(&format!("PRAGMA key='{password}'"))?;
+        connection.batch_execute("PRAGMA foreign_keys = ON;")?;
+        connection.batch_execute(&format!(
+            "PRAGMA busy_timeout = {};",
+            Duration::from_secs(15).as_millis()
+        ))?;
 
-        Ok(Self { connection_pool })
+        // Check if the database encryption password is correct by running a simple query.
+        connection.batch_execute("SELECT name FROM sqlite_master WHERE type='table'")?;
+
+        connection
+            .run_pending_migrations(MIGRATIONS)
+            .map_err(|_| anyhow::anyhow!("SQLite migration failed."))?;
+
+        Ok(Self { connection })
     }
 
     /// Saves a keypair to the database.
-    pub fn save_keypair(&self, keypair: &Keypair) -> anyhow::Result<()> {
-        let conn = &mut self.connection_pool.get()?;
-
+    pub fn save_keypair(&mut self, keypair: &Keypair) -> anyhow::Result<()> {
         let public_key: PublicKey = keypair.x_only_public_key().0.into();
         let secret_key: SecretKey = keypair.secret_key().into();
 
@@ -133,7 +99,7 @@ impl Database {
                 npub: public_key.to_bech32()?,
                 nsec: secret_key.to_bech32()?,
             })
-            .execute(conn)?;
+            .execute(&mut self.connection)?;
 
         Ok(())
     }
@@ -142,37 +108,31 @@ impl Database {
     /// If the keypair is associated with any registered applications, the
     /// caller must first unregister the applications or swap their
     /// application identities or an error will be returned.
-    pub fn remove_keypair(&self, public_key: &str) -> anyhow::Result<()> {
-        let conn = &mut self.connection_pool.get()?;
-
-        delete(nostr_keys.filter(npub.eq(public_key))).execute(conn)?;
+    pub fn remove_keypair(&mut self, public_key: &str) -> anyhow::Result<()> {
+        delete(nostr_keys.filter(npub.eq(public_key))).execute(&mut self.connection)?;
 
         Ok(())
     }
 
     /// Lists keypairs in the database. Ordered by id in ascending order.
     /// Use limit and offset parameters for pagination.
-    pub fn list_keypairs(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<NostrKeypair>> {
-        let conn = &mut self.connection_pool.get()?;
-
+    pub fn list_keypairs(&mut self, limit: i64, offset: i64) -> anyhow::Result<Vec<NostrKeypair>> {
         Ok(nostr_keys
             .order(id)
             .limit(limit)
             .offset(offset)
-            .load(conn)?)
+            .load(&mut self.connection)?)
     }
 
     /// Lists public keys of keypairs in the database. Ordered by id in ascending order.
     /// Use limit and offset parameters for pagination.
-    pub fn list_public_keys(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<String>> {
-        let conn = &mut self.connection_pool.get()?;
-
+    pub fn list_public_keys(&mut self, limit: i64, offset: i64) -> anyhow::Result<Vec<String>> {
         Ok(nostr_keys
             .select(npub)
             .order(id)
             .limit(limit)
             .offset(offset)
-            .load(conn)?
+            .load(&mut self.connection)?
             .into_iter()
             .collect())
     }

@@ -121,9 +121,7 @@ impl<'a> Page {
             }
             Message::DbUnlockPasswordSubmitted => {
                 if let Self::DbUnlock { password, .. } = self {
-                    if let Ok(db) =
-                        Database::open_or_create_in_app_data_dir((*password).to_string())
-                    {
+                    if let Ok(db) = Database::open_or_create_in_app_data_dir(password) {
                         *self = Self::KeysList { db };
                     }
                 }

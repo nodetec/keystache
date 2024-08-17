@@ -15,7 +15,7 @@ nip-55 = "0.4.0"
 nostr-sdk = "0.30.0"
 rusqlite = { version = "0.31.0", features = ["bundled-sqlcipher"] }
 rustc-hash = "2.0.0"
-diesel = { version = "2.2.0", features = ["sqlite", "chrono", "r2d2"] }
+diesel = { version = "2.2.0", features = ["sqlite", "chrono"] }
 dotenvy = "0.15"
 libsqlite3-sys = { version = "0.28.0", features = [
     "bundled",
