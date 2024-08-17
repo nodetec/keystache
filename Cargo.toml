@@ -11,16 +11,22 @@ async-trait = "0.1.77"
 chrono = { version = "0.4.34", features = ["alloc"] }
 iced = { version = "0.12.1", features = ["image", "debug"] }
 itertools = "0.13.0"
-libsqlite3-sys = { version = "0.28.0", features = ["bundled-sqlcipher"] }
-lightning-invoice = "0.31.0"
 nip-55 = "0.4.0"
 nostr-sdk = "0.30.0"
 rusqlite = { version = "0.31.0", features = ["bundled-sqlcipher"] }
 rustc-hash = "2.0.0"
+diesel = { version = "2.2.0", features = ["sqlite", "chrono", "r2d2"] }
+dotenvy = "0.15"
+libsqlite3-sys = { version = "0.28.0", features = [
+    "bundled",
+    "bundled-sqlcipher",
+] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = "1.36.0"
 tracing-subscriber = "0.3.18"
+directories = "5.0.1"
+diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
 
 [dev-dependencies]
 tempfile = "3.10.0"

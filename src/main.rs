@@ -3,6 +3,10 @@
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::missing_const_for_fn)]
 
+mod db;
+
+use db::Database;
+
 use iced::widget::{
     checkbox, column, container, row, scrollable, text, text_input, Button, Column, Container,
     Space, Text,
@@ -25,10 +29,7 @@ fn main() -> iced::Result {
                 width: 400.0,
                 height: 600.0,
             }),
-            max_size: Some(Size {
-                width: 1024.0,
-                height: 768.0,
-            }),
+            max_size: None,
             visible: true,
             resizable: true,
             decorations: true,
@@ -58,6 +59,7 @@ impl Sandbox for Keystache {
             page: Page::DbUnlock {
                 password: String::new(),
                 is_secure: true,
+                db_already_exists: Database::exists(),
             },
         }
     }
@@ -90,11 +92,18 @@ enum Message {
     DbUnlockPasswordInputChanged(String),
     DbUnlockToggleSecureInput,
     DbUnlockPasswordSubmitted,
+    DbDeleteAllData,
 }
 
 enum Page {
-    DbUnlock { password: String, is_secure: bool },
-    KeysList,
+    DbUnlock {
+        password: String,
+        is_secure: bool,
+        db_already_exists: bool,
+    },
+    KeysList {
+        db: Database,
+    },
 }
 
 impl<'a> Page {
@@ -111,8 +120,21 @@ impl<'a> Page {
                 }
             }
             Message::DbUnlockPasswordSubmitted => {
-                if let Self::DbUnlock { .. } = self {
-                    *self = Self::KeysList;
+                if let Self::DbUnlock { password, .. } = self {
+                    if let Ok(db) =
+                        Database::open_or_create_in_app_data_dir((*password).to_string())
+                    {
+                        *self = Self::KeysList { db };
+                    }
+                }
+            }
+            Message::DbDeleteAllData => {
+                if let Self::DbUnlock {
+                    db_already_exists, ..
+                } = self
+                {
+                    Database::delete();
+                    *db_already_exists = false;
                 }
             }
         };
@@ -123,8 +145,9 @@ impl<'a> Page {
             Self::DbUnlock {
                 password,
                 is_secure,
-            } => Self::db_unlock(password, *is_secure),
-            Self::KeysList => Self::keys_list(),
+                db_already_exists,
+            } => Self::db_unlock(password, *is_secure, *db_already_exists),
+            Self::KeysList { .. } => Self::keys_list(),
         }
         .into()
     }
@@ -135,16 +158,32 @@ impl<'a> Page {
             .align_items(iced::Alignment::Center)
     }
 
-    fn db_unlock(password: &str, is_secure: bool) -> Column<'a, Message> {
+    fn db_unlock(password: &str, is_secure: bool, db_already_exists: bool) -> Column<'a, Message> {
         let text_input = text_input("Password", password)
             .on_input(Message::DbUnlockPasswordInputChanged)
             .padding(10)
             .size(30);
 
-        Self::container("Enter Password")
-            .push(
-                "Your Keystache database is password-encrypted. Enter your password to unlock it.",
-            )
+        let container_name = if db_already_exists {
+            "Enter Password"
+        } else {
+            "Choose a Password"
+        };
+
+        let description = if db_already_exists {
+            "Your Keystache database is password-encrypted. Enter your password to unlock it."
+        } else {
+            "Keystache will encrypt all of your data at rest. If you forget your password, your keys will be unrecoverable from Keystache. So make sure to backup your keys and keep your password somewhere safe."
+        };
+
+        let next_button_text = if db_already_exists {
+            "Unlock"
+        } else {
+            "Set Password"
+        };
+
+        let mut container = Self::container(container_name)
+            .push(description)
             .push(row![
                 text_input.secure(is_secure),
                 Space::with_width(Pixels(20.0)),
@@ -154,7 +193,7 @@ impl<'a> Page {
             .push(
                 Button::new(
                     Container::new(
-                        Text::new("Unlock")
+                        Text::new(next_button_text)
                             .horizontal_alignment(iced::alignment::Horizontal::Center),
                     )
                     .width(Length::Fill)
@@ -164,7 +203,24 @@ impl<'a> Page {
                 .on_press_maybe(
                     (!password.is_empty()).then_some(Message::DbUnlockPasswordSubmitted),
                 ),
-            )
+            );
+
+        if db_already_exists {
+            container = container.push(
+                Button::new(
+                    Container::new(
+                        Text::new("Delete All Data")
+                            .horizontal_alignment(iced::alignment::Horizontal::Center),
+                    )
+                    .width(Length::Fill)
+                    .center_x(),
+                )
+                .padding([12, 24])
+                .on_press(Message::DbDeleteAllData),
+            );
+        }
+
+        container
     }
 
     fn keys_list() -> Column<'a, Message> {
