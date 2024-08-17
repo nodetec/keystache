@@ -2,8 +2,11 @@
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::significant_drop_tightening)]
 
 mod db;
+
+use std::str::FromStr;
 
 use db::Database;
 
@@ -13,6 +16,8 @@ use iced::widget::{
 };
 use iced::window::settings::PlatformSpecific;
 use iced::{Element, Length, Pixels, Sandbox, Settings, Size};
+use nostr_sdk::secp256k1::{Keypair, Secp256k1};
+use nostr_sdk::SecretKey;
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -75,11 +80,7 @@ impl Sandbox for Keystache {
     fn view(&self) -> Element<Message> {
         let Self { page, .. } = self;
 
-        let content: Element<_> = column![page.view()]
-            .max_width(540)
-            .spacing(20)
-            .padding(20)
-            .into();
+        let content: Element<_> = column![page.view()].spacing(20).padding(20).into();
 
         let scrollable = scrollable(container(content).width(Length::Fill).center_x());
 
@@ -93,6 +94,10 @@ enum Message {
     DbUnlockToggleSecureInput,
     DbUnlockPasswordSubmitted,
     DbDeleteAllData,
+    GoToHomePage,
+    GoToAddKeypairPage,
+    SaveKeypair,
+    SaveKeypairNsecInputChanged(String),
 }
 
 enum Page {
@@ -101,7 +106,12 @@ enum Page {
         is_secure: bool,
         db_already_exists: bool,
     },
-    KeysList {
+    Home {
+        db: Database,
+    },
+    AddKeypair {
+        nsec: String,
+        keypair_or: Option<Keypair>, // Parsed from nsec on any update. `Some` if nsec is valid, `None` otherwise.
         db: Database,
     },
 }
@@ -122,7 +132,7 @@ impl<'a> Page {
             Message::DbUnlockPasswordSubmitted => {
                 if let Self::DbUnlock { password, .. } = self {
                     if let Ok(db) = Database::open_or_create_in_app_data_dir(password) {
-                        *self = Self::KeysList { db };
+                        *self = Self::Home { db };
                     }
                 }
             }
@@ -135,6 +145,43 @@ impl<'a> Page {
                     *db_already_exists = false;
                 }
             }
+            Message::GoToHomePage => {
+                if let Some(db) = self.get_db() {
+                    *self = Self::Home { db: db.clone() };
+                }
+            }
+            Message::GoToAddKeypairPage => {
+                if let Self::Home { db } = self {
+                    *self = Self::AddKeypair {
+                        nsec: String::new(),
+                        keypair_or: None,
+                        db: db.clone(),
+                    };
+                }
+            }
+            Message::SaveKeypair => {
+                if let Self::AddKeypair {
+                    keypair_or: Some(keypair),
+                    db,
+                    ..
+                } = self
+                {
+                    db.save_keypair(keypair);
+                }
+            }
+            Message::SaveKeypairNsecInputChanged(new_nsec) => {
+                if let Self::AddKeypair {
+                    nsec, keypair_or, ..
+                } = self
+                {
+                    *nsec = new_nsec;
+
+                    // Set `keypair_or` to `Some` if `nsec` is a valid secret key, `None` otherwise.
+                    *keypair_or = SecretKey::from_str(nsec).map_or(None, |secret_key| {
+                        Some(Keypair::from_secret_key(&Secp256k1::new(), &secret_key))
+                    });
+                }
+            }
         };
     }
 
@@ -145,15 +192,28 @@ impl<'a> Page {
                 is_secure,
                 db_already_exists,
             } => Self::db_unlock(password, *is_secure, *db_already_exists),
-            Self::KeysList { .. } => Self::keys_list(),
+            Self::Home { db } => Self::home(db),
+            Self::AddKeypair {
+                nsec,
+                keypair_or,
+                db,
+            } => Self::add_keypair(nsec, keypair_or, db),
         }
         .into()
     }
 
     fn container(title: &str) -> Column<'a, Message> {
-        column![text(title).size(50)]
+        column![text(title).size(35)]
             .spacing(20)
             .align_items(iced::Alignment::Center)
+    }
+
+    fn get_db(&self) -> Option<&Database> {
+        match self {
+            Self::DbUnlock { .. } => None,
+            Self::Home { db } => Some(db),
+            Self::AddKeypair { db, .. } => Some(db),
+        }
     }
 
     fn db_unlock(password: &str, is_secure: bool, db_already_exists: bool) -> Column<'a, Message> {
@@ -221,7 +281,68 @@ impl<'a> Page {
         container
     }
 
-    fn keys_list() -> Column<'a, Message> {
-        Self::container("Keys").push("Here are your keys!")
+    fn home(db: &Database) -> Column<'a, Message> {
+        // TODO: Add pagination.
+        let Ok(public_keys) = db.list_public_keys(999, 0) else {
+            return Self::container("Desktop companion for Nostr apps").push("Failed to load keys");
+        };
+
+        let mut container =
+            Self::container("Desktop companion for Nostr apps").push("Manage your Nostr accounts");
+
+        for public_key in public_keys {
+            container = container.push(
+                Text::new(public_key)
+                    .size(20)
+                    .horizontal_alignment(iced::alignment::Horizontal::Center),
+            );
+        }
+
+        container = container.push(
+            Button::new(
+                Container::new(
+                    Text::new("Add Keypair")
+                        .horizontal_alignment(iced::alignment::Horizontal::Center),
+                )
+                .width(Length::Fill)
+                .center_x(),
+            )
+            .padding([12, 24])
+            .on_press(Message::GoToAddKeypairPage),
+        );
+
+        container
+    }
+
+    fn add_keypair(nsec: &str, keypair_or: &Option<Keypair>, db: &Database) -> Column<'a, Message> {
+        Self::container("Add Keypair")
+            .push(
+                text_input("nSec", nsec)
+                    .on_input(Message::SaveKeypairNsecInputChanged)
+                    .padding(10)
+                    .size(30),
+            )
+            .push(
+                Button::new(
+                    Container::new(
+                        Text::new("Save").horizontal_alignment(iced::alignment::Horizontal::Center),
+                    )
+                    .width(Length::Fill)
+                    .center_x(),
+                )
+                .padding([12, 24])
+                .on_press_maybe(keypair_or.is_some().then_some(Message::SaveKeypair)),
+            )
+            .push(
+                Button::new(
+                    Container::new(
+                        Text::new("Back").horizontal_alignment(iced::alignment::Horizontal::Center),
+                    )
+                    .width(Length::Fill)
+                    .center_x(),
+                )
+                .padding([12, 24])
+                .on_press(Message::GoToHomePage),
+            )
     }
 }

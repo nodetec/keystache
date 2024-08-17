@@ -10,6 +10,7 @@ use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::{PublicKey, SecretKey, ToBech32};
 use schema::nostr_keys::dsl::{id, nostr_keys, npub};
 use std::path::Path;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 const DATABASE_NAME: &str = "keystache.sqlite";
@@ -20,8 +21,10 @@ fn normalize_password(password: &str) -> String {
 }
 
 /// Database handle for Keystache data.
+#[derive(Clone)]
 pub struct Database {
-    connection: SqliteConnection,
+    // TODO: Use an async `Mutex` and make functions async.
+    connection: Arc<Mutex<SqliteConnection>>,
 }
 
 impl Database {
@@ -85,13 +88,17 @@ impl Database {
             .run_pending_migrations(MIGRATIONS)
             .map_err(|_| anyhow::anyhow!("SQLite migration failed."))?;
 
-        Ok(Self { connection })
+        Ok(Self {
+            connection: Arc::new(Mutex::new(connection)),
+        })
     }
 
     /// Saves a keypair to the database.
-    pub fn save_keypair(&mut self, keypair: &Keypair) -> anyhow::Result<()> {
+    pub fn save_keypair(&self, keypair: &Keypair) -> anyhow::Result<()> {
         let public_key: PublicKey = keypair.x_only_public_key().0.into();
         let secret_key: SecretKey = keypair.secret_key().into();
+
+        let mut connection = self.connection.lock().unwrap();
 
         insert_into(schema::nostr_keys::table)
             .values(&NewNostrKeypair {
@@ -99,7 +106,7 @@ impl Database {
                 npub: public_key.to_bech32()?,
                 nsec: secret_key.to_bech32()?,
             })
-            .execute(&mut self.connection)?;
+            .execute(&mut *connection)?;
 
         Ok(())
     }
@@ -108,31 +115,37 @@ impl Database {
     /// If the keypair is associated with any registered applications, the
     /// caller must first unregister the applications or swap their
     /// application identities or an error will be returned.
-    pub fn remove_keypair(&mut self, public_key: &str) -> anyhow::Result<()> {
-        delete(nostr_keys.filter(npub.eq(public_key))).execute(&mut self.connection)?;
+    pub fn remove_keypair(&self, public_key: &str) -> anyhow::Result<()> {
+        let mut connection = self.connection.lock().unwrap();
+
+        delete(nostr_keys.filter(npub.eq(public_key))).execute(&mut *connection)?;
 
         Ok(())
     }
 
     /// Lists keypairs in the database. Ordered by id in ascending order.
     /// Use limit and offset parameters for pagination.
-    pub fn list_keypairs(&mut self, limit: i64, offset: i64) -> anyhow::Result<Vec<NostrKeypair>> {
+    pub fn list_keypairs(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<NostrKeypair>> {
+        let mut connection = self.connection.lock().unwrap();
+
         Ok(nostr_keys
             .order(id)
             .limit(limit)
             .offset(offset)
-            .load(&mut self.connection)?)
+            .load(&mut *connection)?)
     }
 
     /// Lists public keys of keypairs in the database. Ordered by id in ascending order.
     /// Use limit and offset parameters for pagination.
-    pub fn list_public_keys(&mut self, limit: i64, offset: i64) -> anyhow::Result<Vec<String>> {
+    pub fn list_public_keys(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<String>> {
+        let mut connection = self.connection.lock().unwrap();
+
         Ok(nostr_keys
             .select(npub)
             .order(id)
             .limit(limit)
             .offset(offset)
-            .load(&mut self.connection)?
+            .load(&mut *connection)?
             .into_iter()
             .collect())
     }
