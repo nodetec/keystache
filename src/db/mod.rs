@@ -10,7 +10,8 @@ use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::{PublicKey, SecretKey, ToBech32};
 use schema::nostr_keys::dsl::{id, nostr_keys, npub};
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::str::FromStr;
+use std::sync::Mutex;
 use std::time::Duration;
 
 const DATABASE_NAME: &str = "keystache.sqlite";
@@ -21,10 +22,9 @@ fn normalize_password(password: &str) -> String {
 }
 
 /// Database handle for Keystache data.
-#[derive(Clone)]
 pub struct Database {
     // TODO: Use an async `Mutex` and make functions async.
-    connection: Arc<Mutex<SqliteConnection>>,
+    connection: Mutex<SqliteConnection>,
 }
 
 impl Database {
@@ -89,7 +89,7 @@ impl Database {
             .map_err(|_| anyhow::anyhow!("SQLite migration failed."))?;
 
         Ok(Self {
-            connection: Arc::new(Mutex::new(connection)),
+            connection: Mutex::new(connection),
         })
     }
 
@@ -153,6 +153,18 @@ impl Database {
     fn get_project_dirs() -> anyhow::Result<directories::ProjectDirs> {
         directories::ProjectDirs::from("co", "nodetec", "keystache")
             .ok_or_else(|| anyhow::anyhow!("Could not determine Keystache project directories."))
+    }
+}
+
+impl nip_55::KeyManager for Database {
+    fn get_secret_key(&self, public_key: &PublicKey) -> Option<SecretKey> {
+        // TODO: Fetch secret key from database using the public
+        // key rather than loading all keypairs into memory.
+        self.list_keypairs(999, 0)
+            .ok()?
+            .into_iter()
+            .find(|keypair| keypair.npub == public_key.to_string())
+            .map(|keypair| SecretKey::from_str(&keypair.nsec).ok())?
     }
 }
 

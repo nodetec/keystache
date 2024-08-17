@@ -7,11 +7,12 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.80"
+async-trait = "0.1.81"
 chrono = { version = "0.4.34", features = ["alloc"] }
 diesel = { version = "2.2.0", features = ["sqlite", "chrono"] }
 diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
 directories = "5.0.1"
-iced = "0.12.1"
+iced = { version = "0.12.1", features = ["tokio"] }
 libsqlite3-sys = { version = "0.28.0", features = ["bundled-sqlcipher"] }
 nip-55 = "0.4.0"
 nostr-sdk = "0.30.0"
