@@ -6,19 +6,21 @@
 
 mod db;
 
+use std::collections::VecDeque;
+use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
 use db::Database;
 
-use async_trait::async_trait;
+use iced::futures::{SinkExt, StreamExt};
 use iced::widget::{
     checkbox, column, container, row, scrollable, text, text_input, Button, Column, Container,
     Space, Text, Theme,
 };
 use iced::window::settings::PlatformSpecific;
 use iced::{Application, Command, Element, Length, Pixels, Settings, Size};
-use nip_55::nip46::Nip46RequestApproval;
+use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
 use nostr_sdk::secp256k1::{Keypair, Secp256k1};
 use nostr_sdk::{PublicKey, SecretKey};
 
@@ -97,6 +99,41 @@ impl Application for Keystache {
 
         container(scrollable).height(Length::Fill).center_y().into()
     }
+
+    fn subscription(&self) -> iced::Subscription<Self::Message> {
+        let Some(connected_state) = self.page.get_connected_state() else {
+            return iced::Subscription::none();
+        };
+
+        let db_clone = connected_state.db.clone();
+
+        iced::subscription::channel(
+            std::any::TypeId::of::<Nip46OverNip55ServerStream>(),
+            100,
+            |mut output| async move {
+                loop {
+                    let mut stream = Nip46OverNip55ServerStream::start(
+                        "/tmp/nip55-kind24133.sock",
+                        db_clone.clone(),
+                    )
+                    .unwrap();
+
+                    while let Some((request_list, public_key, response_sender)) =
+                        stream.next().await
+                    {
+                        output
+                            .send(Message::IncomingNip46Request(Arc::new((
+                                request_list,
+                                public_key,
+                                response_sender,
+                            ))))
+                            .await
+                            .unwrap();
+                    }
+                }
+            },
+        )
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -109,12 +146,27 @@ enum Message {
     GoToAddKeypairPage,
     SaveKeypair,
     SaveKeypairNsecInputChanged(String),
+    IncomingNip46Request(
+        Arc<(
+            Vec<nostr_sdk::nips::nip46::Request>,
+            PublicKey,
+            iced::futures::channel::oneshot::Sender<Nip46RequestApproval>,
+        )>,
+    ),
+    ApproveFirstIncomingNip46Request,
+    RejectFirstIncomingNip46Request,
 }
 
 #[derive(Clone)]
 struct ConnectedState {
     db: Arc<Database>,
-    nip_46_over_nip_55_server: Arc<nip_55::nip46::Nip46OverNip55Server>,
+    in_flight_nip46_requests: VecDeque<
+        Arc<(
+            Vec<nostr_sdk::nips::nip46::Request>,
+            PublicKey,
+            iced::futures::channel::oneshot::Sender<Nip46RequestApproval>,
+        )>,
+    >,
 }
 
 #[derive(Clone)]
@@ -152,19 +204,10 @@ impl<'a> Page {
                     if let Ok(db) = Database::open_or_create_in_app_data_dir(password) {
                         let db = Arc::new(db);
 
-                        let nip_46_over_nip_55_server = Arc::new(
-                            nip_55::nip46::Nip46OverNip55Server::start(
-                                "/tmp/nip55-kind24133",
-                                db.clone(),
-                                Arc::new(self.clone()),
-                            )
-                            .unwrap(), // TODO: Handle this `unwrap()`.
-                        );
-
                         *self = Self::Home {
                             connected_state: ConnectedState {
                                 db,
-                                nip_46_over_nip_55_server,
+                                in_flight_nip46_requests: VecDeque::new(),
                             },
                         };
                     }
@@ -218,10 +261,49 @@ impl<'a> Page {
                     });
                 }
             }
+            Message::IncomingNip46Request(data) => {
+                if let Some(connected_state) = self.get_connected_state_mut() {
+                    connected_state.in_flight_nip46_requests.push_back(data);
+                }
+            }
+            Message::ApproveFirstIncomingNip46Request => {
+                if let Some(connected_state) = self.get_connected_state_mut() {
+                    if let Some(req) = connected_state.in_flight_nip46_requests.pop_front() {
+                        let req = Arc::try_unwrap(req).unwrap();
+                        req.2.send(Nip46RequestApproval::Approve).unwrap();
+                    }
+                }
+            }
+            Message::RejectFirstIncomingNip46Request => {
+                if let Some(connected_state) = self.get_connected_state_mut() {
+                    if let Some(req) = connected_state.in_flight_nip46_requests.pop_front() {
+                        let req = Arc::try_unwrap(req).unwrap();
+                        req.2.send(Nip46RequestApproval::Reject).unwrap();
+                    }
+                }
+            }
         };
     }
 
     fn view(&self) -> Element<Message> {
+        // If there are any incoming NIP46 requests, display the first one over the rest of the UI.
+        if let Some(connected_state) = self.get_connected_state() {
+            if let Some(req) = connected_state.in_flight_nip46_requests.front() {
+                return Column::new()
+                    .push(Text::new("Incoming NIP-46 request"))
+                    .push(Text::new(format!("{:?}", req.0)))
+                    .push(row![
+                        Button::new(Text::new("Approve"))
+                            .on_press(Message::ApproveFirstIncomingNip46Request)
+                            .padding(10),
+                        Button::new(Text::new("Reject"))
+                            .on_press(Message::RejectFirstIncomingNip46Request)
+                            .padding(10),
+                    ])
+                    .into();
+            }
+        }
+
         match self {
             Self::DbUnlock {
                 password,
@@ -243,6 +325,16 @@ impl<'a> Page {
     }
 
     fn get_connected_state(&self) -> Option<&ConnectedState> {
+        match self {
+            Self::DbUnlock { .. } => None,
+            Self::Home { connected_state } => Some(connected_state),
+            Self::AddKeypair {
+                connected_state, ..
+            } => Some(connected_state),
+        }
+    }
+
+    fn get_connected_state_mut(&mut self) -> Option<&mut ConnectedState> {
         match self {
             Self::DbUnlock { .. } => None,
             Self::Home { connected_state } => Some(connected_state),
@@ -380,16 +472,5 @@ impl<'a> Page {
                 .padding([12, 24])
                 .on_press(Message::GoToHomePage),
             )
-    }
-}
-
-#[async_trait]
-impl nip_55::nip46::Nip46RequestApprover for Page {
-    async fn handle_batch_request(
-        &self,
-        requests: Vec<(nostr_sdk::nips::nip46::Request, PublicKey)>,
-    ) -> Nip46RequestApproval {
-        // TODO: Don't just always approve. Display a UI to the user to approve or reject.
-        Nip46RequestApproval::Approve
     }
 }

@@ -6,6 +6,7 @@ use diesel::delete;
 use diesel::{insert_into, prelude::*};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 use model::{NewNostrKeypair, NostrKeypair};
+use nip_55::KeyManager;
 use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::{PublicKey, SecretKey, ToBech32};
 use schema::nostr_keys::dsl::{id, nostr_keys, npub};
@@ -156,14 +157,14 @@ impl Database {
     }
 }
 
-impl nip_55::KeyManager for Database {
+impl KeyManager for Database {
     fn get_secret_key(&self, public_key: &PublicKey) -> Option<SecretKey> {
         // TODO: Fetch secret key from database using the public
         // key rather than loading all keypairs into memory.
         self.list_keypairs(999, 0)
             .ok()?
             .into_iter()
-            .find(|keypair| keypair.npub == public_key.to_string())
+            .find(|keypair| keypair.npub == public_key.to_bech32().unwrap())
             .map(|keypair| SecretKey::from_str(&keypair.nsec).ok())?
     }
 }
