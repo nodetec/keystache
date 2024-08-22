@@ -5,6 +5,12 @@ description = "A Nostr key management app for desktop"
 authors = ["The Node-Tec Team"]
 edition = "2021"
 
+[package.metadata.bundle]
+name = "Keystache"
+identifier = "co.nodetec.keystache"
+icon = ["icons/**/*.png"]
+resources = ["icons/**/*.png"]
+
 [dependencies]
 anyhow = "1.0.80"
 async-trait = "0.1.81"
