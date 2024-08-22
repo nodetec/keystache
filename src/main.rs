@@ -7,7 +7,6 @@
 mod db;
 
 use std::collections::VecDeque;
-use std::ops::Deref;
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -160,6 +159,7 @@ enum Message {
 #[derive(Clone)]
 struct ConnectedState {
     db: Arc<Database>,
+    #[allow(clippy::type_complexity)]
     in_flight_nip46_requests: VecDeque<
         Arc<(
             Vec<nostr_sdk::nips::nip46::Request>,
@@ -245,7 +245,8 @@ impl<'a> Page {
                     ..
                 } = self
                 {
-                    connected_state.db.save_keypair(keypair);
+                    // TODO: Surface this error to the UI.
+                    let _ = connected_state.db.save_keypair(keypair);
                 }
             }
             Message::SaveKeypairNsecInputChanged(new_nsec) => {
