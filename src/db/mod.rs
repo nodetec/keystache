@@ -9,7 +9,7 @@ use model::{NewNostrKeypair, NostrKeypair};
 use nip_55::KeyManager;
 use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::{PublicKey, SecretKey, ToBech32};
-use schema::nostr_keys::dsl::{id, nostr_keys, npub};
+use schema::nostr_keys::dsl as nostr_keys_dsl;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::Mutex;
@@ -119,7 +119,8 @@ impl Database {
     pub fn remove_keypair(&self, public_key: &str) -> anyhow::Result<()> {
         let mut connection = self.connection.lock().unwrap();
 
-        delete(nostr_keys.filter(npub.eq(public_key))).execute(&mut *connection)?;
+        delete(nostr_keys_dsl::nostr_keys.filter(nostr_keys_dsl::npub.eq(public_key)))
+            .execute(&mut *connection)?;
 
         Ok(())
     }
@@ -129,8 +130,8 @@ impl Database {
     pub fn list_keypairs(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<NostrKeypair>> {
         let mut connection = self.connection.lock().unwrap();
 
-        Ok(nostr_keys
-            .order(id)
+        Ok(nostr_keys_dsl::nostr_keys
+            .order(nostr_keys_dsl::id)
             .limit(limit)
             .offset(offset)
             .load(&mut *connection)?)
@@ -141,9 +142,9 @@ impl Database {
     pub fn list_public_keys(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<String>> {
         let mut connection = self.connection.lock().unwrap();
 
-        Ok(nostr_keys
-            .select(npub)
-            .order(id)
+        Ok(nostr_keys_dsl::nostr_keys
+            .select(nostr_keys_dsl::npub)
+            .order(nostr_keys_dsl::id)
             .limit(limit)
             .offset(offset)
             .load(&mut *connection)?
