@@ -5,11 +5,12 @@ use diesel::connection::SimpleConnection;
 use diesel::delete;
 use diesel::{insert_into, prelude::*};
 use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
-use model::{NewNostrKeypair, NostrKeypair};
+use model::{NewNostrKeypair, NewNostrRelay, NostrKeypair, NostrRelay};
 use nip_55::KeyManager;
 use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::{PublicKey, SecretKey, ToBech32};
 use schema::nostr_keys::dsl as nostr_keys_dsl;
+use schema::nostr_relays::dsl as nostr_relays_dsl;
 use std::path::Path;
 use std::str::FromStr;
 use std::sync::Mutex;
@@ -113,9 +114,6 @@ impl Database {
     }
 
     /// Removes a keypair from the database.
-    /// If the keypair is associated with any registered applications, the
-    /// caller must first unregister the applications or swap their
-    /// application identities or an error will be returned.
     pub fn remove_keypair(&self, public_key: &str) -> anyhow::Result<()> {
         let mut connection = self.connection.lock().unwrap();
 
@@ -150,6 +148,42 @@ impl Database {
             .load(&mut *connection)?
             .into_iter()
             .collect())
+    }
+
+    /// Saves a nostr relay to the database.
+    pub fn save_relay(&self, websocket_url: String) -> anyhow::Result<()> {
+        let mut connection = self.connection.lock().unwrap();
+
+        insert_into(schema::nostr_relays::table)
+            .values(&NewNostrRelay { websocket_url })
+            .execute(&mut *connection)?;
+
+        Ok(())
+    }
+
+    /// Removes a nostr relay from the database.
+    pub fn remove_relay(&self, websocket_url: &str) -> anyhow::Result<()> {
+        let mut connection = self.connection.lock().unwrap();
+
+        delete(
+            nostr_relays_dsl::nostr_relays
+                .filter(nostr_relays_dsl::websocket_url.eq(websocket_url)),
+        )
+        .execute(&mut *connection)?;
+
+        Ok(())
+    }
+
+    /// Lists relays in the database. Ordered by id in ascending order.
+    /// Use limit and offset parameters for pagination.
+    pub fn list_relays(&self, limit: i64, offset: i64) -> anyhow::Result<Vec<NostrRelay>> {
+        let mut connection = self.connection.lock().unwrap();
+
+        Ok(nostr_relays_dsl::nostr_relays
+            .order(nostr_relays_dsl::id)
+            .limit(limit)
+            .offset(offset)
+            .load(&mut *connection)?)
     }
 
     fn get_project_dirs() -> anyhow::Result<directories::ProjectDirs> {

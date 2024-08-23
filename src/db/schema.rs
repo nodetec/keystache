@@ -9,3 +9,11 @@ diesel::table! {
         create_time -> Timestamp,
     }
 }
+
+diesel::table! {
+    nostr_relays (id) {
+        id -> Integer,
+        websocket_url -> Text,
+        create_time -> Timestamp,
+    }
+}

@@ -21,3 +21,19 @@ pub struct NostrKeypair {
     pub nsec: String,
     pub create_time: NaiveDateTime,
 }
+
+#[derive(Insertable)]
+#[diesel(table_name = schema::nostr_relays)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct NewNostrRelay {
+    pub websocket_url: String,
+}
+
+#[derive(Queryable, Selectable, Debug)]
+#[diesel(table_name = schema::nostr_relays)]
+#[diesel(check_for_backend(diesel::sqlite::Sqlite))]
+pub struct NostrRelay {
+    pub id: i32,
+    pub websocket_url: String,
+    pub create_time: NaiveDateTime,
+}

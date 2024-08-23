@@ -1,0 +1,5 @@
+CREATE TABLE nostr_relays (
+    id INTEGER PRIMARY KEY NOT NULL,
+    websocket_url TEXT NOT NULL UNIQUE,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+)
