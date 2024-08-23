@@ -5,6 +5,9 @@ mod icon;
 use iced::{Color, Theme};
 pub use icon::*;
 
+mod sidebar;
+pub use sidebar::*;
+
 mod util;
 
 #[derive(PartialEq, Eq)]

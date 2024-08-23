@@ -15,12 +15,13 @@ use db::Database;
 
 use iced::advanced::Application;
 use iced::futures::{SinkExt, StreamExt};
-use iced::widget::{column, container, scrollable, Theme};
+use iced::widget::{column, container, row, scrollable, Theme};
 use iced::window::settings::PlatformSpecific;
 use iced::{Command, Element, Length, Pixels, Renderer, Settings, Size};
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
 use nostr_sdk::PublicKey;
-use routes::Route;
+use routes::{Route, RouteName};
+use ui_components::sidebar;
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -34,7 +35,7 @@ fn main() -> iced::Result {
             },
             position: iced::window::Position::Default,
             min_size: Some(Size {
-                width: 400.0,
+                width: 800.0,
                 height: 600.0,
             }),
             max_size: None,
@@ -88,11 +89,17 @@ impl Application for Keystache {
     fn view(&self) -> Element<Message> {
         let Self { page, .. } = self;
 
-        let content: Element<_> = column![page.view()].spacing(20).padding(20).into();
+        let mut content: Element<Message> = Element::new(scrollable(
+            container(column![page.view()].spacing(20).padding(20))
+                .width(Length::Fill)
+                .center_x(),
+        ));
 
-        let scrollable = scrollable(container(content).width(Length::Fill).center_x());
+        if page.to_name() != RouteName::Unlock {
+            content = Element::new(row![sidebar(self), content]);
+        };
 
-        container(scrollable).height(Length::Fill).center_y().into()
+        container(content).height(Length::Fill).center_y().into()
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {

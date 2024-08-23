@@ -23,6 +23,13 @@ mod add_nostr_keypair;
 mod home;
 mod unlock;
 
+#[derive(Clone, PartialEq, Eq)]
+pub enum RouteName {
+    Unlock,
+    Home,
+    AddNostrKeypair,
+}
+
 #[derive(Clone)]
 pub enum Route {
     Unlock(Unlock),
@@ -37,6 +44,14 @@ impl<'a> Route {
             is_secure: true,
             db_already_exists: Database::exists(),
         })
+    }
+
+    pub fn to_name(&self) -> RouteName {
+        match self {
+            Self::Unlock(_) => RouteName::Unlock,
+            Self::Home(_) => RouteName::Home,
+            Self::AddNostrKeypair(_) => RouteName::AddNostrKeypair,
+        }
     }
 
     pub fn update(&mut self, msg: Message) {

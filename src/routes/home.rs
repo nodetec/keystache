@@ -31,11 +31,6 @@ impl Home {
             );
         }
 
-        container = container.push(
-            icon_button("Add Keypair", SvgIcon::Key, PaletteColor::Primary)
-                .on_press(Message::GoToAddKeypairPage),
-        );
-
         container
     }
 }

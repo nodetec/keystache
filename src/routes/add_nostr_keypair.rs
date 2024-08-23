@@ -28,9 +28,5 @@ impl AddNostrKeypair {
                 icon_button("Save", SvgIcon::Save, PaletteColor::Primary)
                     .on_press_maybe(self.keypair_or.is_some().then_some(Message::SaveKeypair)),
             )
-            .push(
-                icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Primary)
-                    .on_press(Message::GoToHomePage),
-            )
     }
 }
