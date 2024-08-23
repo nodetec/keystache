@@ -8,8 +8,8 @@ edition = "2021"
 [package.metadata.bundle]
 name = "Keystache"
 identifier = "co.nodetec.keystache"
-icon = ["icons/**/*.png"]
-resources = ["icons/**/*.png"]
+icon = ["assets/icons/**/*.png"]
+resources = ["assets/fonts/**/*.*"]
 
 [dependencies]
 anyhow = "1.0.80"
