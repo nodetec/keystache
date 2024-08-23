@@ -5,6 +5,7 @@
 #![allow(clippy::significant_drop_tightening)]
 
 mod db;
+mod ui_components;
 
 use std::collections::VecDeque;
 use std::str::FromStr;
@@ -12,16 +13,18 @@ use std::sync::Arc;
 
 use db::Database;
 
+use iced::advanced::Application;
 use iced::futures::{SinkExt, StreamExt};
 use iced::widget::{
     checkbox, column, container, row, scrollable, text, text_input, Button, Column, Container,
     Space, Text, Theme,
 };
 use iced::window::settings::PlatformSpecific;
-use iced::{Application, Command, Element, Length, Pixels, Settings, Size};
+use iced::{Command, Element, Length, Pixels, Renderer, Settings, Size};
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
 use nostr_sdk::secp256k1::{Keypair, Secp256k1};
 use nostr_sdk::{PublicKey, SecretKey};
+use ui_components::{icon_button, PaletteColor};
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -65,6 +68,7 @@ impl Application for Keystache {
     type Message = Message;
     type Theme = Theme;
     type Flags = ();
+    type Renderer = Renderer;
 
     fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
         (
@@ -294,12 +298,18 @@ impl<'a> Page {
                     .push(Text::new("Incoming NIP-46 request"))
                     .push(Text::new(format!("{:?}", req.0)))
                     .push(row![
-                        Button::new(Text::new("Approve"))
-                            .on_press(Message::ApproveFirstIncomingNip46Request)
-                            .padding(10),
-                        Button::new(Text::new("Reject"))
-                            .on_press(Message::RejectFirstIncomingNip46Request)
-                            .padding(10),
+                        icon_button(
+                            "Approve",
+                            ui_components::SvgIcon::ThumbUp,
+                            PaletteColor::Primary,
+                        )
+                        .on_press(Message::ApproveFirstIncomingNip46Request),
+                        icon_button(
+                            "Reject",
+                            ui_components::SvgIcon::ThumbDown,
+                            PaletteColor::Primary,
+                        )
+                        .on_press(Message::RejectFirstIncomingNip46Request),
                     ])
                     .into();
             }
@@ -320,7 +330,7 @@ impl<'a> Page {
     }
 
     fn container(title: &str) -> Column<'a, Message> {
-        column![text(title).size(35)]
+        column![text(title.to_string()).size(35)]
             .spacing(20)
             .align_items(iced::Alignment::Center)
     }
@@ -378,15 +388,11 @@ impl<'a> Page {
                     .on_toggle(|_| Message::DbUnlockToggleSecureInput)
             ])
             .push(
-                Button::new(
-                    Container::new(
-                        Text::new(next_button_text)
-                            .horizontal_alignment(iced::alignment::Horizontal::Center),
-                    )
-                    .width(Length::Fill)
-                    .center_x(),
+                icon_button(
+                    next_button_text,
+                    ui_components::SvgIcon::LockOpen,
+                    PaletteColor::Primary,
                 )
-                .padding([12, 24])
                 .on_press_maybe(
                     (!password.is_empty()).then_some(Message::DbUnlockPasswordSubmitted),
                 ),
@@ -394,15 +400,11 @@ impl<'a> Page {
 
         if db_already_exists {
             container = container.push(
-                Button::new(
-                    Container::new(
-                        Text::new("Delete All Data")
-                            .horizontal_alignment(iced::alignment::Horizontal::Center),
-                    )
-                    .width(Length::Fill)
-                    .center_x(),
+                icon_button(
+                    "Delete All Data",
+                    ui_components::SvgIcon::Delete,
+                    PaletteColor::Background,
                 )
-                .padding([12, 24])
                 .on_press(Message::DbDeleteAllData),
             );
         }
@@ -421,22 +423,18 @@ impl<'a> Page {
 
         for public_key in public_keys {
             container = container.push(
-                Text::new(public_key)
+                Text::new(truncate_text(&public_key, 12, true))
                     .size(20)
                     .horizontal_alignment(iced::alignment::Horizontal::Center),
             );
         }
 
         container = container.push(
-            Button::new(
-                Container::new(
-                    Text::new("Add Keypair")
-                        .horizontal_alignment(iced::alignment::Horizontal::Center),
-                )
-                .width(Length::Fill)
-                .center_x(),
+            icon_button(
+                "Add Keypair",
+                ui_components::SvgIcon::Key,
+                PaletteColor::Primary,
             )
-            .padding([12, 24])
             .on_press(Message::GoToAddKeypairPage),
         );
 
@@ -452,26 +450,64 @@ impl<'a> Page {
                     .size(30),
             )
             .push(
-                Button::new(
-                    Container::new(
-                        Text::new("Save").horizontal_alignment(iced::alignment::Horizontal::Center),
-                    )
-                    .width(Length::Fill)
-                    .center_x(),
-                )
-                .padding([12, 24])
-                .on_press_maybe(keypair_or.is_some().then_some(Message::SaveKeypair)),
+                icon_button("Save", ui_components::SvgIcon::Save, PaletteColor::Primary)
+                    .on_press_maybe(keypair_or.is_some().then_some(Message::SaveKeypair)),
             )
             .push(
-                Button::new(
-                    Container::new(
-                        Text::new("Back").horizontal_alignment(iced::alignment::Horizontal::Center),
-                    )
-                    .width(Length::Fill)
-                    .center_x(),
+                icon_button(
+                    "Back",
+                    ui_components::SvgIcon::ArrowBack,
+                    PaletteColor::Primary,
                 )
-                .padding([12, 24])
                 .on_press(Message::GoToHomePage),
             )
+    }
+}
+
+fn format_timestamp(timestamp: &u64) -> String {
+    let signed = timestamp.to_owned() as i64;
+    let date_time = chrono::DateTime::from_timestamp(signed, 0).unwrap();
+    format!("{}", date_time.format("%m/%d/%Y, %l:%M %P"))
+}
+
+fn format_amount(amount: u64) -> String {
+    if amount == 1 {
+        return "1 sat".to_string();
+    }
+
+    let num = amount
+        .to_string()
+        .as_bytes()
+        .rchunks(3)
+        .rev()
+        .map(std::str::from_utf8)
+        .collect::<Result<Vec<&str>, _>>()
+        .unwrap()
+        .join(",");
+
+    format!("{num} sats")
+}
+
+pub fn truncate_text(input: &str, max_len: usize, center: bool) -> String {
+    match center {
+        // Center the ellipses around middle of the string.
+        true => {
+            if input.len() > max_len {
+                format!(
+                    "{}...{}",
+                    &input[..(max_len / 2)],
+                    &input[(input.len() - max_len / 2)..]
+                )
+            } else {
+                input.to_string()
+            }
+        }
+        false => {
+            if input.len() > max_len {
+                format!("{}...", &input[input.len() - max_len..])
+            } else {
+                input.to_string()
+            }
+        }
     }
 }

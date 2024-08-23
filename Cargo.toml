@@ -18,10 +18,15 @@ chrono = { version = "0.4.34", features = ["alloc"] }
 diesel = { version = "2.2.0", features = ["sqlite", "chrono"] }
 diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
 directories = "5.0.1"
-iced = { version = "0.12.1", features = ["tokio"] }
+iced = { git = "https://github.com/iced-rs/iced", rev = "b30d34f", features = [
+    "advanced",
+    "svg",
+    "tokio",
+] }
 libsqlite3-sys = { version = "0.28.0", features = ["bundled-sqlcipher"] }
 nip-55 = "0.6.0"
 nostr-sdk = "0.30.0"
+palette = "0.7.6"
 tracing-subscriber = "0.3.18"
 
 [dev-dependencies]
