@@ -29,7 +29,7 @@ mod nostr_relays;
 mod settings;
 mod unlock;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RouteName {
     Unlock,
     Home,
@@ -49,7 +49,7 @@ pub enum Route {
     Settings(Settings),
 }
 
-impl<'a> Route {
+impl Route {
     pub fn new_locked() -> Self {
         Self::Unlock(Unlock {
             password: String::new(),
@@ -74,53 +74,33 @@ impl<'a> Route {
             KeystacheMessage::Navigate(route_name) => {
                 let new_self_or = match route_name {
                     RouteName::Unlock => Some(Self::new_locked()),
-                    RouteName::Home => {
-                        if let Some(connected_state) = self.get_connected_state() {
-                            Some(Self::Home(Home {
-                                connected_state: connected_state.clone(),
-                            }))
-                        } else {
-                            None
-                        }
-                    }
-                    RouteName::NostrKeypairs => {
-                        if let Some(connected_state) = self.get_connected_state() {
-                            Some(Self::NostrKeypairs(NostrKeypairs {
-                                connected_state: connected_state.clone(),
-                                nsec: String::new(),
-                                keypair_or: None,
-                            }))
-                        } else {
-                            None
-                        }
-                    }
-                    RouteName::NostrRelays => {
-                        if let Some(connected_state) = self.get_connected_state() {
-                            Some(Self::NostrRelays(NostrRelays {
-                                connected_state: connected_state.clone(),
-                            }))
-                        } else {
-                            None
-                        }
-                    }
-                    RouteName::BitcoinWallet => {
-                        if let Some(connected_state) = self.get_connected_state() {
-                            Some(Self::BitcoinWallet(BitcoinWallet {
-                                connected_state: connected_state.clone(),
-                            }))
-                        } else {
-                            None
-                        }
-                    }
-                    RouteName::Settings => {
-                        if let Some(connected_state) = self.get_connected_state() {
-                            Some(Self::Settings(Settings {
-                                connected_state: connected_state.clone(),
-                            }))
-                        } else {
-                            None
-                        }
-                    }
+                    RouteName::Home => self.get_connected_state().map(|connected_state| {
+                        Self::Home(Home {
+                            connected_state: connected_state.clone(),
+                        })
+                    }),
+                    RouteName::NostrKeypairs => self.get_connected_state().map(|connected_state| {
+                        Self::NostrKeypairs(NostrKeypairs {
+                            connected_state: connected_state.clone(),
+                            nsec: String::new(),
+                            keypair_or: None,
+                        })
+                    }),
+                    RouteName::NostrRelays => self.get_connected_state().map(|connected_state| {
+                        Self::NostrRelays(NostrRelays {
+                            connected_state: connected_state.clone(),
+                        })
+                    }),
+                    RouteName::BitcoinWallet => self.get_connected_state().map(|connected_state| {
+                        Self::BitcoinWallet(BitcoinWallet {
+                            connected_state: connected_state.clone(),
+                        })
+                    }),
+                    RouteName::Settings => self.get_connected_state().map(|connected_state| {
+                        Self::Settings(Settings {
+                            connected_state: connected_state.clone(),
+                        })
+                    }),
                 };
 
                 if let Some(new_self_or) = new_self_or {

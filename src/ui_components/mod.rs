@@ -22,11 +22,11 @@ pub enum PaletteColor {
 impl PaletteColor {
     pub fn to_color(&self, theme: &Theme) -> Color {
         match self {
-            PaletteColor::Background => theme.palette().background,
-            PaletteColor::Text => theme.palette().text,
-            PaletteColor::Primary => theme.palette().primary,
-            PaletteColor::Success => theme.palette().success,
-            PaletteColor::Danger => theme.palette().danger,
+            Self::Background => theme.palette().background,
+            Self::Text => theme.palette().text,
+            Self::Primary => theme.palette().primary,
+            Self::Success => theme.palette().success,
+            Self::Danger => theme.palette().danger,
         }
     }
 }

@@ -171,7 +171,7 @@ struct ConnectedState {
     >,
 }
 
-fn format_timestamp(timestamp: &u64) -> String {
+fn format_timestamp(timestamp: u64) -> String {
     let signed = timestamp.to_owned() as i64;
     let date_time = chrono::DateTime::from_timestamp(signed, 0).unwrap();
     format!("{}", date_time.format("%m/%d/%Y, %l:%M %P"))
@@ -195,6 +195,7 @@ fn format_amount(amount: u64) -> String {
     format!("{num} sats")
 }
 
+#[must_use]
 pub fn truncate_text(input: &str, max_len: usize, center: bool) -> String {
     const ELLIPSES: &str = "...";
     const ELLIPSES_LEN: usize = ELLIPSES.len();

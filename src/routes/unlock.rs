@@ -19,7 +19,7 @@ pub struct Unlock {
 
 impl Unlock {
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
-        let Unlock {
+        let Self {
             password,
             is_secure,
             db_already_exists,

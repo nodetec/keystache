@@ -39,10 +39,10 @@ pub fn icon_button(
         }
 
         bg_color = match status {
+            Status::Active => bg_color,
             Status::Hovered => lighten(bg_color, 0.05),
             Status::Pressed => lighten(bg_color, 0.1),
             Status::Disabled => darken(bg_color, 0.5),
-            _ => bg_color,
         };
 
         let mut text_color = Color::WHITE;
@@ -89,10 +89,10 @@ pub fn sidebar_button<'a>(
             };
 
             bg_color = match status {
+                Status::Active => bg_color,
                 Status::Hovered => lighten(bg_color, 0.05),
                 Status::Pressed => lighten(bg_color, 0.1),
                 Status::Disabled => darken(bg_color, 0.5),
-                _ => bg_color,
             };
 
             let mut text_color = Color::WHITE;

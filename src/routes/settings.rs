@@ -1,7 +1,4 @@
-use iced::{
-    widget::{Column, Text},
-    Element,
-};
+use iced::widget::{Column, Text};
 
 use crate::{ConnectedState, KeystacheMessage};
 

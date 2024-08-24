@@ -1,10 +1,6 @@
 use iced::widget::{Column, Text};
 
-use crate::{
-    truncate_text,
-    ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, KeystacheMessage,
-};
+use crate::{truncate_text, ConnectedState, KeystacheMessage};
 
 use super::container;
 
