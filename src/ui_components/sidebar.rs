@@ -18,6 +18,13 @@ pub fn sidebar(keystache: &Keystache) -> Element<Message> {
                 .on_press(Message::Navigate(RouteName::NostrKeypairs)),
             sidebar_button("Relays", SvgIcon::Hub, RouteName::NostrRelays, keystache)
                 .on_press(Message::Navigate(RouteName::NostrRelays)),
+            sidebar_button(
+                "Wallet",
+                SvgIcon::CurrencyBitcoin,
+                RouteName::BitcoinWallet,
+                keystache
+            )
+            .on_press(Message::Navigate(RouteName::BitcoinWallet)),
             vertical_space(),
             sidebar_button(
                 "Settings",

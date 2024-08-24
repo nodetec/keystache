@@ -1,5 +1,6 @@
 use std::{collections::VecDeque, str::FromStr, sync::Arc};
 
+use bitcoin_wallet::BitcoinWallet;
 use home::Home;
 use iced::{
     widget::{column, row, text, Column, Text},
@@ -21,6 +22,7 @@ use crate::{
     ConnectedState, Message,
 };
 
+mod bitcoin_wallet;
 mod home;
 mod nostr_keypairs;
 mod nostr_relays;
@@ -33,6 +35,7 @@ pub enum RouteName {
     Home,
     NostrKeypairs,
     NostrRelays,
+    BitcoinWallet,
     Settings,
 }
 
@@ -42,6 +45,7 @@ pub enum Route {
     Home(Home),
     NostrKeypairs(NostrKeypairs),
     NostrRelays(NostrRelays),
+    BitcoinWallet(BitcoinWallet),
     Settings(Settings),
 }
 
@@ -60,6 +64,7 @@ impl<'a> Route {
             Self::Home(_) => RouteName::Home,
             Self::NostrKeypairs(_) => RouteName::NostrKeypairs,
             Self::NostrRelays(_) => RouteName::NostrRelays,
+            Self::BitcoinWallet(_) => RouteName::BitcoinWallet,
             Self::Settings(_) => RouteName::Settings,
         }
     }
@@ -92,6 +97,15 @@ impl<'a> Route {
                     RouteName::NostrRelays => {
                         if let Some(connected_state) = self.get_connected_state() {
                             Some(Self::NostrRelays(NostrRelays {
+                                connected_state: connected_state.clone(),
+                            }))
+                        } else {
+                            None
+                        }
+                    }
+                    RouteName::BitcoinWallet => {
+                        if let Some(connected_state) = self.get_connected_state() {
+                            Some(Self::BitcoinWallet(BitcoinWallet {
                                 connected_state: connected_state.clone(),
                             }))
                         } else {
@@ -218,6 +232,7 @@ impl<'a> Route {
             Self::Home(home) => home.view(),
             Self::NostrKeypairs(nostr_keypairs) => nostr_keypairs.view(),
             Self::NostrRelays(nostr_relays) => nostr_relays.view(),
+            Self::BitcoinWallet(bitcoin_wallet) => bitcoin_wallet.view(),
             Self::Settings(settings) => settings.view(),
         }
         .into()
@@ -231,6 +246,7 @@ impl<'a> Route {
                 connected_state, ..
             }) => Some(connected_state),
             Self::NostrRelays(NostrRelays { connected_state }) => Some(connected_state),
+            Self::BitcoinWallet(BitcoinWallet { connected_state }) => Some(connected_state),
             Self::Settings(Settings { connected_state }) => Some(connected_state),
         }
     }
@@ -243,6 +259,7 @@ impl<'a> Route {
                 connected_state, ..
             }) => Some(connected_state),
             Self::NostrRelays(NostrRelays { connected_state }) => Some(connected_state),
+            Self::BitcoinWallet(BitcoinWallet { connected_state }) => Some(connected_state),
             Self::Settings(Settings { connected_state }) => Some(connected_state),
         }
     }
