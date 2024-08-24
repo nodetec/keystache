@@ -3,7 +3,7 @@ use iced::{
     Element,
 };
 
-use crate::{ConnectedState, Message};
+use crate::{ConnectedState, KeystacheMessage};
 
 use super::container;
 
@@ -13,7 +13,7 @@ pub struct Settings {
 }
 
 impl Settings {
-    pub fn view<'a>(&self) -> Column<'a, Message> {
+    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         container("Settings").push(Text::new("Work in progress! Check back later."))
     }
 }

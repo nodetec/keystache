@@ -19,7 +19,7 @@ use unlock::Unlock;
 use crate::{
     db::Database,
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, Message,
+    ConnectedState, KeystacheMessage,
 };
 
 mod bitcoin_wallet;
@@ -69,9 +69,9 @@ impl<'a> Route {
         }
     }
 
-    pub fn update(&mut self, msg: Message) {
+    pub fn update(&mut self, msg: KeystacheMessage) {
         match msg {
-            Message::Navigate(route_name) => {
+            KeystacheMessage::Navigate(route_name) => {
                 let new_self_or = match route_name {
                     RouteName::Unlock => Some(Self::new_locked()),
                     RouteName::Home => {
@@ -129,17 +129,17 @@ impl<'a> Route {
                     // TODO: Log warning that navigation failed.
                 }
             }
-            Message::UnlockPasswordInputChanged(new_password) => {
+            KeystacheMessage::UnlockPasswordInputChanged(new_password) => {
                 if let Self::Unlock(Unlock { password, .. }) = self {
                     *password = new_password;
                 }
             }
-            Message::UnlockToggleSecureInput => {
+            KeystacheMessage::UnlockToggleSecureInput => {
                 if let Self::Unlock(Unlock { is_secure, .. }) = self {
                     *is_secure = !*is_secure;
                 }
             }
-            Message::UnlockPasswordSubmitted => {
+            KeystacheMessage::UnlockPasswordSubmitted => {
                 if let Self::Unlock(Unlock { password, .. }) = self {
                     if let Ok(db) = Database::open_or_create_in_app_data_dir(password) {
                         let db = Arc::new(db);
@@ -153,7 +153,7 @@ impl<'a> Route {
                     }
                 }
             }
-            Message::DbDeleteAllData => {
+            KeystacheMessage::DbDeleteAllData => {
                 if let Self::Unlock(Unlock {
                     db_already_exists, ..
                 }) = self
@@ -162,7 +162,7 @@ impl<'a> Route {
                     *db_already_exists = false;
                 }
             }
-            Message::SaveKeypair => {
+            KeystacheMessage::SaveKeypair => {
                 if let Self::NostrKeypairs(NostrKeypairs {
                     connected_state,
                     keypair_or: Some(keypair),
@@ -173,7 +173,7 @@ impl<'a> Route {
                     let _ = connected_state.db.save_keypair(keypair);
                 }
             }
-            Message::SaveKeypairNsecInputChanged(new_nsec) => {
+            KeystacheMessage::SaveKeypairNsecInputChanged(new_nsec) => {
                 if let Self::NostrKeypairs(NostrKeypairs {
                     nsec, keypair_or, ..
                 }) = self
@@ -186,12 +186,12 @@ impl<'a> Route {
                     });
                 }
             }
-            Message::IncomingNip46Request(data) => {
+            KeystacheMessage::IncomingNip46Request(data) => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     connected_state.in_flight_nip46_requests.push_back(data);
                 }
             }
-            Message::ApproveFirstIncomingNip46Request => {
+            KeystacheMessage::ApproveFirstIncomingNip46Request => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     if let Some(req) = connected_state.in_flight_nip46_requests.pop_front() {
                         let req = Arc::try_unwrap(req).unwrap();
@@ -199,7 +199,7 @@ impl<'a> Route {
                     }
                 }
             }
-            Message::RejectFirstIncomingNip46Request => {
+            KeystacheMessage::RejectFirstIncomingNip46Request => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     if let Some(req) = connected_state.in_flight_nip46_requests.pop_front() {
                         let req = Arc::try_unwrap(req).unwrap();
@@ -210,7 +210,7 @@ impl<'a> Route {
         };
     }
 
-    pub fn view(&self) -> Element<Message> {
+    pub fn view(&self) -> Element<KeystacheMessage> {
         // If there are any incoming NIP46 requests, display the first one over the rest of the UI.
         if let Some(connected_state) = self.get_connected_state() {
             if let Some(req) = connected_state.in_flight_nip46_requests.front() {
@@ -219,9 +219,9 @@ impl<'a> Route {
                     .push(Text::new(format!("{:?}", req.0)))
                     .push(row![
                         icon_button("Approve", SvgIcon::ThumbUp, PaletteColor::Primary,)
-                            .on_press(Message::ApproveFirstIncomingNip46Request),
+                            .on_press(KeystacheMessage::ApproveFirstIncomingNip46Request),
                         icon_button("Reject", SvgIcon::ThumbDown, PaletteColor::Primary,)
-                            .on_press(Message::RejectFirstIncomingNip46Request),
+                            .on_press(KeystacheMessage::RejectFirstIncomingNip46Request),
                     ])
                     .into();
             }
@@ -265,7 +265,7 @@ impl<'a> Route {
     }
 }
 
-pub fn container<'a>(title: &str) -> Column<'a, Message> {
+pub fn container<'a>(title: &str) -> Column<'a, KeystacheMessage> {
     column![text(title.to_string()).size(35)]
         .spacing(20)
         .align_items(iced::Alignment::Center)

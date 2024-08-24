@@ -3,7 +3,7 @@ use nostr_sdk::secp256k1::Keypair;
 
 use crate::{
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, Message,
+    ConnectedState, KeystacheMessage,
 };
 
 use super::container;
@@ -16,17 +16,20 @@ pub struct NostrKeypairs {
 }
 
 impl NostrKeypairs {
-    pub fn view<'a>(&self) -> Column<'a, Message> {
+    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         container("Add Keypair")
             .push(
                 text_input("nSec", &self.nsec)
-                    .on_input(Message::SaveKeypairNsecInputChanged)
+                    .on_input(KeystacheMessage::SaveKeypairNsecInputChanged)
                     .padding(10)
                     .size(30),
             )
             .push(
-                icon_button("Save", SvgIcon::Save, PaletteColor::Primary)
-                    .on_press_maybe(self.keypair_or.is_some().then_some(Message::SaveKeypair)),
+                icon_button("Save", SvgIcon::Save, PaletteColor::Primary).on_press_maybe(
+                    self.keypair_or
+                        .is_some()
+                        .then_some(KeystacheMessage::SaveKeypair),
+                ),
             )
     }
 }

@@ -3,7 +3,7 @@ use iced::widget::{Column, Text};
 use crate::{
     truncate_text,
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, Message,
+    ConnectedState, KeystacheMessage,
 };
 
 use super::container;
@@ -14,7 +14,7 @@ pub struct Home {
 }
 
 impl Home {
-    pub fn view<'a>(&self) -> Column<'a, Message> {
+    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         // TODO: Add pagination.
         let Ok(public_keys) = self.connected_state.db.list_public_keys(999, 0) else {
             return container("Desktop companion for Nostr apps").push("Failed to load keys");

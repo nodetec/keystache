@@ -1,6 +1,6 @@
 use iced::widget::{Column, Text};
 
-use crate::{ConnectedState, Message};
+use crate::{ConnectedState, KeystacheMessage};
 
 use super::container;
 
@@ -10,7 +10,7 @@ pub struct NostrRelays {
 }
 
 impl NostrRelays {
-    pub fn view<'a>(&self) -> Column<'a, Message> {
+    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         container("Nostr Relays").push(Text::new("Work in progress! Check back later."))
     }
 }

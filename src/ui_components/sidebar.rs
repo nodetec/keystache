@@ -4,27 +4,27 @@ use iced::Border;
 use iced::{Alignment, Element, Shadow};
 
 use crate::routes::RouteName;
-use crate::{Keystache, Message};
+use crate::{Keystache, KeystacheMessage};
 
 use super::util::lighten;
 use super::{sidebar_button, SvgIcon};
 
-pub fn sidebar(keystache: &Keystache) -> Element<Message> {
+pub fn sidebar(keystache: &Keystache) -> Element<KeystacheMessage> {
     let sidebar = container(
         column![
             sidebar_button("Home", SvgIcon::Home, RouteName::Home, keystache)
-                .on_press(Message::Navigate(RouteName::Home)),
+                .on_press(KeystacheMessage::Navigate(RouteName::Home)),
             sidebar_button("Keys", SvgIcon::Key, RouteName::NostrKeypairs, keystache)
-                .on_press(Message::Navigate(RouteName::NostrKeypairs)),
+                .on_press(KeystacheMessage::Navigate(RouteName::NostrKeypairs)),
             sidebar_button("Relays", SvgIcon::Hub, RouteName::NostrRelays, keystache)
-                .on_press(Message::Navigate(RouteName::NostrRelays)),
+                .on_press(KeystacheMessage::Navigate(RouteName::NostrRelays)),
             sidebar_button(
                 "Wallet",
                 SvgIcon::CurrencyBitcoin,
                 RouteName::BitcoinWallet,
                 keystache
             )
-            .on_press(Message::Navigate(RouteName::BitcoinWallet)),
+            .on_press(KeystacheMessage::Navigate(RouteName::BitcoinWallet)),
             vertical_space(),
             sidebar_button(
                 "Settings",
@@ -32,7 +32,7 @@ pub fn sidebar(keystache: &Keystache) -> Element<Message> {
                 RouteName::Settings,
                 keystache
             )
-            .on_press(Message::Navigate(RouteName::Settings)),
+            .on_press(KeystacheMessage::Navigate(RouteName::Settings)),
         ]
         .spacing(8)
         .align_items(Alignment::Start),

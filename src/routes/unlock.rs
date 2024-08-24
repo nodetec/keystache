@@ -5,7 +5,7 @@ use iced::{
 
 use crate::{
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    Message,
+    KeystacheMessage,
 };
 
 use super::container;
@@ -18,7 +18,7 @@ pub struct Unlock {
 }
 
 impl Unlock {
-    pub fn view<'a>(&self) -> Column<'a, Message> {
+    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         let Unlock {
             password,
             is_secure,
@@ -26,7 +26,7 @@ impl Unlock {
         } = self;
 
         let text_input = text_input("Password", password)
-            .on_input(Message::UnlockPasswordInputChanged)
+            .on_input(KeystacheMessage::UnlockPasswordInputChanged)
             .padding(10)
             .size(30);
 
@@ -54,19 +54,19 @@ impl Unlock {
                 text_input.secure(*is_secure),
                 Space::with_width(Pixels(20.0)),
                 checkbox("Show password", !is_secure)
-                    .on_toggle(|_| Message::UnlockToggleSecureInput)
+                    .on_toggle(|_| KeystacheMessage::UnlockToggleSecureInput)
             ])
             .push(
                 icon_button(next_button_text, SvgIcon::LockOpen, PaletteColor::Primary)
                     .on_press_maybe(
-                        (!password.is_empty()).then_some(Message::UnlockPasswordSubmitted),
+                        (!password.is_empty()).then_some(KeystacheMessage::UnlockPasswordSubmitted),
                     ),
             );
 
         if *db_already_exists {
             container = container.push(
                 icon_button("Delete All Data", SvgIcon::Delete, PaletteColor::Background)
-                    .on_press(Message::DbDeleteAllData),
+                    .on_press(KeystacheMessage::DbDeleteAllData),
             );
         }
 

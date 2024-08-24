@@ -62,12 +62,12 @@ struct Keystache {
 
 impl Application for Keystache {
     type Executor = iced::executor::Default;
-    type Message = Message;
+    type Message = KeystacheMessage;
     type Theme = Theme;
     type Flags = ();
     type Renderer = Renderer;
 
-    fn new(_flags: Self::Flags) -> (Self, Command<Message>) {
+    fn new(_flags: Self::Flags) -> (Self, Command<KeystacheMessage>) {
         (
             Self {
                 page: Route::new_locked(),
@@ -80,16 +80,16 @@ impl Application for Keystache {
         "Keystache".to_string()
     }
 
-    fn update(&mut self, event: Message) -> Command<Message> {
+    fn update(&mut self, event: KeystacheMessage) -> Command<KeystacheMessage> {
         self.page.update(event);
 
         Command::none()
     }
 
-    fn view(&self) -> Element<Message> {
+    fn view(&self) -> Element<KeystacheMessage> {
         let Self { page, .. } = self;
 
-        let mut content: Element<Message> = Element::new(scrollable(
+        let mut content: Element<KeystacheMessage> = Element::new(scrollable(
             container(column![page.view()].spacing(20).padding(20))
                 .width(Length::Fill)
                 .center_x(),
@@ -124,7 +124,7 @@ impl Application for Keystache {
                         stream.next().await
                     {
                         output
-                            .send(Message::IncomingNip46Request(Arc::new((
+                            .send(KeystacheMessage::IncomingNip46Request(Arc::new((
                                 request_list,
                                 public_key,
                                 response_sender,
@@ -139,7 +139,7 @@ impl Application for Keystache {
 }
 
 #[derive(Debug, Clone)]
-enum Message {
+enum KeystacheMessage {
     Navigate(RouteName),
     UnlockPasswordInputChanged(String),
     UnlockToggleSecureInput,
