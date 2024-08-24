@@ -7,6 +7,7 @@ use iced::{
     Element,
 };
 use nip_55::nip_46::Nip46RequestApproval;
+use nostr_relays::NostrRelays;
 use nostr_sdk::{
     secp256k1::{Keypair, Secp256k1},
     SecretKey,
@@ -22,6 +23,7 @@ use crate::{
 
 mod add_nostr_keypair;
 mod home;
+mod nostr_relays;
 mod settings;
 mod unlock;
 
@@ -30,6 +32,7 @@ pub enum RouteName {
     Unlock,
     Home,
     AddNostrKeypair,
+    NostrRelays,
     Settings,
 }
 
@@ -38,6 +41,7 @@ pub enum Route {
     Unlock(Unlock),
     Home(Home),
     AddNostrKeypair(AddNostrKeypair),
+    NostrRelays(NostrRelays),
     Settings(Settings),
 }
 
@@ -55,6 +59,7 @@ impl<'a> Route {
             Self::Unlock(_) => RouteName::Unlock,
             Self::Home(_) => RouteName::Home,
             Self::AddNostrKeypair(_) => RouteName::AddNostrKeypair,
+            Self::NostrRelays(_) => RouteName::NostrRelays,
             Self::Settings(_) => RouteName::Settings,
         }
     }
@@ -79,6 +84,15 @@ impl<'a> Route {
                                 connected_state: connected_state.clone(),
                                 nsec: String::new(),
                                 keypair_or: None,
+                            }))
+                        } else {
+                            None
+                        }
+                    }
+                    RouteName::NostrRelays => {
+                        if let Some(connected_state) = self.get_connected_state() {
+                            Some(Self::NostrRelays(NostrRelays {
+                                connected_state: connected_state.clone(),
                             }))
                         } else {
                             None
@@ -203,6 +217,7 @@ impl<'a> Route {
             Self::Unlock(unlock) => unlock.view(),
             Self::Home(home) => home.view(),
             Self::AddNostrKeypair(add_nostr_keypair) => add_nostr_keypair.view(),
+            Self::NostrRelays(nostr_relays) => nostr_relays.view(),
             Self::Settings(settings) => settings.view(),
         }
         .into()
@@ -215,6 +230,7 @@ impl<'a> Route {
             Self::AddNostrKeypair(AddNostrKeypair {
                 connected_state, ..
             }) => Some(connected_state),
+            Self::NostrRelays(NostrRelays { connected_state }) => Some(connected_state),
             Self::Settings(Settings { connected_state }) => Some(connected_state),
         }
     }
@@ -226,6 +242,7 @@ impl<'a> Route {
             Self::AddNostrKeypair(AddNostrKeypair {
                 connected_state, ..
             }) => Some(connected_state),
+            Self::NostrRelays(NostrRelays { connected_state }) => Some(connected_state),
             Self::Settings(Settings { connected_state }) => Some(connected_state),
         }
     }

@@ -16,6 +16,8 @@ pub fn sidebar(keystache: &Keystache) -> Element<Message> {
                 .on_press(Message::Navigate(RouteName::Home)),
             sidebar_button("Keys", SvgIcon::Key, RouteName::AddNostrKeypair, keystache)
                 .on_press(Message::Navigate(RouteName::AddNostrKeypair)),
+            sidebar_button("Relays", SvgIcon::Hub, RouteName::NostrRelays, keystache)
+                .on_press(Message::Navigate(RouteName::NostrRelays)),
             vertical_space(),
             sidebar_button(
                 "Settings",
