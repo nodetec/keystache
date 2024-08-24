@@ -17,6 +17,13 @@ pub fn sidebar(keystache: &Keystache) -> Element<Message> {
             sidebar_button("Keys", SvgIcon::Key, RouteName::AddNostrKeypair, keystache)
                 .on_press(Message::GoToAddKeypairPage),
             vertical_space(),
+            sidebar_button(
+                "Settings",
+                SvgIcon::Settings,
+                RouteName::Settings,
+                keystache
+            )
+            .on_press(Message::GoToSettingsPage),
         ]
         .spacing(8)
         .align_items(Alignment::Start),

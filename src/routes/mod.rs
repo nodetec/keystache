@@ -11,6 +11,7 @@ use nostr_sdk::{
     secp256k1::{Keypair, Secp256k1},
     SecretKey,
 };
+use settings::Settings;
 use unlock::Unlock;
 
 use crate::{
@@ -21,6 +22,7 @@ use crate::{
 
 mod add_nostr_keypair;
 mod home;
+mod settings;
 mod unlock;
 
 #[derive(Clone, PartialEq, Eq)]
@@ -28,6 +30,7 @@ pub enum RouteName {
     Unlock,
     Home,
     AddNostrKeypair,
+    Settings,
 }
 
 #[derive(Clone)]
@@ -35,6 +38,7 @@ pub enum Route {
     Unlock(Unlock),
     Home(Home),
     AddNostrKeypair(AddNostrKeypair),
+    Settings(Settings),
 }
 
 impl<'a> Route {
@@ -51,6 +55,7 @@ impl<'a> Route {
             Self::Unlock(_) => RouteName::Unlock,
             Self::Home(_) => RouteName::Home,
             Self::AddNostrKeypair(_) => RouteName::AddNostrKeypair,
+            Self::Settings(_) => RouteName::Settings,
         }
     }
 
@@ -102,6 +107,13 @@ impl<'a> Route {
                         connected_state: connected_state.clone(),
                         nsec: String::new(),
                         keypair_or: None,
+                    });
+                }
+            }
+            Message::GoToSettingsPage => {
+                if let Some(connected_state) = self.get_connected_state() {
+                    *self = Self::Settings(Settings {
+                        connected_state: connected_state.clone(),
                     });
                 }
             }
@@ -174,6 +186,7 @@ impl<'a> Route {
             Self::Unlock(unlock) => unlock.view(),
             Self::Home(home) => home.view(),
             Self::AddNostrKeypair(add_nostr_keypair) => add_nostr_keypair.view(),
+            Self::Settings(settings) => settings.view(),
         }
         .into()
     }
@@ -185,6 +198,7 @@ impl<'a> Route {
             Self::AddNostrKeypair(AddNostrKeypair {
                 connected_state, ..
             }) => Some(connected_state),
+            Self::Settings(Settings { connected_state }) => Some(connected_state),
         }
     }
 
@@ -195,6 +209,7 @@ impl<'a> Route {
             Self::AddNostrKeypair(AddNostrKeypair {
                 connected_state, ..
             }) => Some(connected_state),
+            Self::Settings(Settings { connected_state }) => Some(connected_state),
         }
     }
 }

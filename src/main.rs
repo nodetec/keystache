@@ -146,6 +146,7 @@ enum Message {
     DbDeleteAllData,
     GoToHomePage,
     GoToAddKeypairPage,
+    GoToSettingsPage,
     SaveKeypair,
     SaveKeypairNsecInputChanged(String),
     IncomingNip46Request(
