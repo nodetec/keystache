@@ -4,7 +4,7 @@ use bitcoin_wallet::BitcoinWallet;
 use home::Home;
 use iced::{
     widget::{column, row, text, Column, Text},
-    Element,
+    Alignment, Element,
 };
 use nip_55::nip_46::Nip46RequestApproval;
 use nostr_keypairs::NostrKeypairs;
@@ -217,12 +217,16 @@ impl<'a> Route {
                 return Column::new()
                     .push(Text::new("Incoming NIP-46 request"))
                     .push(Text::new(format!("{:?}", req.0)))
-                    .push(row![
-                        icon_button("Approve", SvgIcon::ThumbUp, PaletteColor::Primary,)
-                            .on_press(KeystacheMessage::ApproveFirstIncomingNip46Request),
-                        icon_button("Reject", SvgIcon::ThumbDown, PaletteColor::Primary,)
-                            .on_press(KeystacheMessage::RejectFirstIncomingNip46Request),
-                    ])
+                    .push(
+                        row![
+                            icon_button("Approve", SvgIcon::ThumbUp, PaletteColor::Primary,)
+                                .on_press(KeystacheMessage::ApproveFirstIncomingNip46Request),
+                            icon_button("Reject", SvgIcon::ThumbDown, PaletteColor::Primary,)
+                                .on_press(KeystacheMessage::RejectFirstIncomingNip46Request),
+                        ]
+                        .spacing(20),
+                    )
+                    .align_items(Alignment::Center)
                     .into();
             }
         }
