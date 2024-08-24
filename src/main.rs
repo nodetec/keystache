@@ -196,25 +196,91 @@ fn format_amount(amount: u64) -> String {
 }
 
 pub fn truncate_text(input: &str, max_len: usize, center: bool) -> String {
-    match center {
-        // Center the ellipses around middle of the string.
-        true => {
-            if input.len() > max_len {
-                format!(
-                    "{}...{}",
-                    &input[..(max_len / 2)],
-                    &input[(input.len() - max_len / 2)..]
-                )
-            } else {
-                input.to_string()
-            }
-        }
-        false => {
-            if input.len() > max_len {
-                format!("{}...", &input[input.len() - max_len..])
-            } else {
-                input.to_string()
-            }
-        }
+    const ELLIPSES: &str = "...";
+    const ELLIPSES_LEN: usize = ELLIPSES.len();
+
+    let chars = input.chars().collect::<Vec<_>>();
+
+    if chars.len() <= max_len {
+        return input.to_string();
+    }
+
+    if max_len <= ELLIPSES_LEN {
+        return ELLIPSES.to_string();
+    }
+
+    if center {
+        // The number of total characters from `input` to display.
+        // Subtract 3 for the ellipsis.
+        let chars_to_display = max_len - 3;
+
+        let is_lobsided = chars_to_display % 2 != 0;
+
+        let chars_in_front = if is_lobsided {
+            (chars_to_display / 2) + 1
+        } else {
+            chars_to_display / 2
+        };
+
+        let chars_in_back = chars_to_display / 2;
+
+        format!(
+            "{}{ELLIPSES}{}",
+            &chars[..chars_in_front].iter().collect::<String>(),
+            &chars[(chars.len() - chars_in_back)..]
+                .iter()
+                .collect::<String>()
+        )
+    } else {
+        format!(
+            "{}{ELLIPSES}",
+            &chars[..(max_len - ELLIPSES_LEN)].iter().collect::<String>()
+        )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_truncate_text() {
+        // Test short input (no truncation needed).
+        assert_eq!(truncate_text("Hello", 10, false), "Hello");
+        assert_eq!(truncate_text("Hello", 10, true), "Hello");
+
+        // Test input exactly matching `max_len`.
+        assert_eq!(truncate_text("Hello", 5, false), "Hello");
+        assert_eq!(truncate_text("Hello", 5, true), "Hello");
+
+        // Test long input.
+        assert_eq!(truncate_text("Hello, world!", 8, false), "Hello...");
+        assert_eq!(truncate_text("Hello, world!", 8, true), "Hel...d!");
+
+        // Test Unicode string handling.
+        assert_eq!(truncate_text("こんにちは世界", 6, false), "こんに...");
+        assert_eq!(truncate_text("こんにちは世界", 6, true), "こん...界");
+
+        // Test empty input.
+        assert_eq!(truncate_text("", 5, false), "");
+        assert_eq!(truncate_text("", 5, true), "");
+
+        // Test edge cases with small `max_len` values.
+        assert_eq!(truncate_text("Hello, world!", 0, false), "...");
+        assert_eq!(truncate_text("Hello, world!", 0, true), "...");
+        assert_eq!(truncate_text("Hello, world!", 1, false), "...");
+        assert_eq!(truncate_text("Hello, world!", 1, true), "...");
+        assert_eq!(truncate_text("Hello, world!", 2, false), "...");
+        assert_eq!(truncate_text("Hello, world!", 2, true), "...");
+        assert_eq!(truncate_text("Hello, world!", 3, false), "...");
+        assert_eq!(truncate_text("Hello, world!", 3, true), "...");
+        assert_eq!(truncate_text("Hello, world!", 4, false), "H...");
+        assert_eq!(truncate_text("Hello, world!", 4, true), "H...");
+        assert_eq!(truncate_text("Hello, world!", 5, false), "He...");
+        assert_eq!(truncate_text("Hello, world!", 5, true), "H...!");
+        assert_eq!(truncate_text("Hello, world!", 6, false), "Hel...");
+        assert_eq!(truncate_text("Hello, world!", 6, true), "He...!");
+        assert_eq!(truncate_text("Hello, world!", 7, false), "Hell...");
+        assert_eq!(truncate_text("Hello, world!", 7, true), "He...d!");
     }
 }
