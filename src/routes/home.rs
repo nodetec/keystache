@@ -1,6 +1,6 @@
 use iced::widget::{Column, Text};
 
-use crate::{truncate_text, ConnectedState, KeystacheMessage};
+use crate::{util::truncate_text, ConnectedState, KeystacheMessage};
 
 use super::container;
 

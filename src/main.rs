@@ -7,6 +7,7 @@
 mod db;
 mod routes;
 mod ui_components;
+mod util;
 
 use std::collections::VecDeque;
 use std::sync::Arc;
@@ -169,119 +170,4 @@ struct ConnectedState {
             iced::futures::channel::oneshot::Sender<Nip46RequestApproval>,
         )>,
     >,
-}
-
-fn format_timestamp(timestamp: u64) -> String {
-    let signed = timestamp.to_owned() as i64;
-    let date_time = chrono::DateTime::from_timestamp(signed, 0).unwrap();
-    format!("{}", date_time.format("%m/%d/%Y, %l:%M %P"))
-}
-
-fn format_amount(amount: u64) -> String {
-    if amount == 1 {
-        return "1 sat".to_string();
-    }
-
-    let num = amount
-        .to_string()
-        .as_bytes()
-        .rchunks(3)
-        .rev()
-        .map(std::str::from_utf8)
-        .collect::<Result<Vec<&str>, _>>()
-        .unwrap()
-        .join(",");
-
-    format!("{num} sats")
-}
-
-#[must_use]
-pub fn truncate_text(input: &str, max_len: usize, center: bool) -> String {
-    const ELLIPSES: &str = "...";
-    const ELLIPSES_LEN: usize = ELLIPSES.len();
-
-    let chars = input.chars().collect::<Vec<_>>();
-
-    if chars.len() <= max_len {
-        return input.to_string();
-    }
-
-    if max_len <= ELLIPSES_LEN {
-        return ELLIPSES.to_string();
-    }
-
-    if center {
-        // The number of total characters from `input` to display.
-        // Subtract 3 for the ellipsis.
-        let chars_to_display = max_len - 3;
-
-        let is_lobsided = chars_to_display % 2 != 0;
-
-        let chars_in_front = if is_lobsided {
-            (chars_to_display / 2) + 1
-        } else {
-            chars_to_display / 2
-        };
-
-        let chars_in_back = chars_to_display / 2;
-
-        format!(
-            "{}{ELLIPSES}{}",
-            &chars[..chars_in_front].iter().collect::<String>(),
-            &chars[(chars.len() - chars_in_back)..]
-                .iter()
-                .collect::<String>()
-        )
-    } else {
-        format!(
-            "{}{ELLIPSES}",
-            &chars[..(max_len - ELLIPSES_LEN)].iter().collect::<String>()
-        )
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_truncate_text() {
-        // Test short input (no truncation needed).
-        assert_eq!(truncate_text("Hello", 10, false), "Hello");
-        assert_eq!(truncate_text("Hello", 10, true), "Hello");
-
-        // Test input exactly matching `max_len`.
-        assert_eq!(truncate_text("Hello", 5, false), "Hello");
-        assert_eq!(truncate_text("Hello", 5, true), "Hello");
-
-        // Test long input.
-        assert_eq!(truncate_text("Hello, world!", 8, false), "Hello...");
-        assert_eq!(truncate_text("Hello, world!", 8, true), "Hel...d!");
-
-        // Test Unicode string handling.
-        assert_eq!(truncate_text("こんにちは世界", 6, false), "こんに...");
-        assert_eq!(truncate_text("こんにちは世界", 6, true), "こん...界");
-
-        // Test empty input.
-        assert_eq!(truncate_text("", 5, false), "");
-        assert_eq!(truncate_text("", 5, true), "");
-
-        // Test edge cases with small `max_len` values.
-        assert_eq!(truncate_text("Hello, world!", 0, false), "...");
-        assert_eq!(truncate_text("Hello, world!", 0, true), "...");
-        assert_eq!(truncate_text("Hello, world!", 1, false), "...");
-        assert_eq!(truncate_text("Hello, world!", 1, true), "...");
-        assert_eq!(truncate_text("Hello, world!", 2, false), "...");
-        assert_eq!(truncate_text("Hello, world!", 2, true), "...");
-        assert_eq!(truncate_text("Hello, world!", 3, false), "...");
-        assert_eq!(truncate_text("Hello, world!", 3, true), "...");
-        assert_eq!(truncate_text("Hello, world!", 4, false), "H...");
-        assert_eq!(truncate_text("Hello, world!", 4, true), "H...");
-        assert_eq!(truncate_text("Hello, world!", 5, false), "He...");
-        assert_eq!(truncate_text("Hello, world!", 5, true), "H...!");
-        assert_eq!(truncate_text("Hello, world!", 6, false), "Hel...");
-        assert_eq!(truncate_text("Hello, world!", 6, true), "He...!");
-        assert_eq!(truncate_text("Hello, world!", 7, false), "Hell...");
-        assert_eq!(truncate_text("Hello, world!", 7, true), "He...d!");
-    }
 }
