@@ -9,13 +9,13 @@ use crate::{
 use super::container;
 
 #[derive(Clone)]
-pub struct AddNostrKeypair {
+pub struct NostrKeypairs {
     pub connected_state: ConnectedState,
     pub nsec: String,
     pub keypair_or: Option<Keypair>, // Parsed from nsec on any update. `Some` if nsec is valid, `None` otherwise.
 }
 
-impl AddNostrKeypair {
+impl NostrKeypairs {
     pub fn view<'a>(&self) -> Column<'a, Message> {
         container("Add Keypair")
             .push(

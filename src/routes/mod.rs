@@ -1,12 +1,12 @@
 use std::{collections::VecDeque, str::FromStr, sync::Arc};
 
-use add_nostr_keypair::AddNostrKeypair;
 use home::Home;
 use iced::{
     widget::{column, row, text, Column, Text},
     Element,
 };
 use nip_55::nip_46::Nip46RequestApproval;
+use nostr_keypairs::NostrKeypairs;
 use nostr_relays::NostrRelays;
 use nostr_sdk::{
     secp256k1::{Keypair, Secp256k1},
@@ -21,8 +21,8 @@ use crate::{
     ConnectedState, Message,
 };
 
-mod add_nostr_keypair;
 mod home;
+mod nostr_keypairs;
 mod nostr_relays;
 mod settings;
 mod unlock;
@@ -31,7 +31,7 @@ mod unlock;
 pub enum RouteName {
     Unlock,
     Home,
-    AddNostrKeypair,
+    NostrKeypairs,
     NostrRelays,
     Settings,
 }
@@ -40,7 +40,7 @@ pub enum RouteName {
 pub enum Route {
     Unlock(Unlock),
     Home(Home),
-    AddNostrKeypair(AddNostrKeypair),
+    NostrKeypairs(NostrKeypairs),
     NostrRelays(NostrRelays),
     Settings(Settings),
 }
@@ -58,7 +58,7 @@ impl<'a> Route {
         match self {
             Self::Unlock(_) => RouteName::Unlock,
             Self::Home(_) => RouteName::Home,
-            Self::AddNostrKeypair(_) => RouteName::AddNostrKeypair,
+            Self::NostrKeypairs(_) => RouteName::NostrKeypairs,
             Self::NostrRelays(_) => RouteName::NostrRelays,
             Self::Settings(_) => RouteName::Settings,
         }
@@ -78,9 +78,9 @@ impl<'a> Route {
                             None
                         }
                     }
-                    RouteName::AddNostrKeypair => {
+                    RouteName::NostrKeypairs => {
                         if let Some(connected_state) = self.get_connected_state() {
-                            Some(Self::AddNostrKeypair(AddNostrKeypair {
+                            Some(Self::NostrKeypairs(NostrKeypairs {
                                 connected_state: connected_state.clone(),
                                 nsec: String::new(),
                                 keypair_or: None,
@@ -149,7 +149,7 @@ impl<'a> Route {
                 }
             }
             Message::SaveKeypair => {
-                if let Self::AddNostrKeypair(AddNostrKeypair {
+                if let Self::NostrKeypairs(NostrKeypairs {
                     connected_state,
                     keypair_or: Some(keypair),
                     ..
@@ -160,7 +160,7 @@ impl<'a> Route {
                 }
             }
             Message::SaveKeypairNsecInputChanged(new_nsec) => {
-                if let Self::AddNostrKeypair(AddNostrKeypair {
+                if let Self::NostrKeypairs(NostrKeypairs {
                     nsec, keypair_or, ..
                 }) = self
                 {
@@ -216,7 +216,7 @@ impl<'a> Route {
         match self {
             Self::Unlock(unlock) => unlock.view(),
             Self::Home(home) => home.view(),
-            Self::AddNostrKeypair(add_nostr_keypair) => add_nostr_keypair.view(),
+            Self::NostrKeypairs(nostr_keypairs) => nostr_keypairs.view(),
             Self::NostrRelays(nostr_relays) => nostr_relays.view(),
             Self::Settings(settings) => settings.view(),
         }
@@ -227,7 +227,7 @@ impl<'a> Route {
         match self {
             Self::Unlock { .. } => None,
             Self::Home(Home { connected_state }) => Some(connected_state),
-            Self::AddNostrKeypair(AddNostrKeypair {
+            Self::NostrKeypairs(NostrKeypairs {
                 connected_state, ..
             }) => Some(connected_state),
             Self::NostrRelays(NostrRelays { connected_state }) => Some(connected_state),
@@ -239,7 +239,7 @@ impl<'a> Route {
         match self {
             Self::Unlock { .. } => None,
             Self::Home(Home { connected_state }) => Some(connected_state),
-            Self::AddNostrKeypair(AddNostrKeypair {
+            Self::NostrKeypairs(NostrKeypairs {
                 connected_state, ..
             }) => Some(connected_state),
             Self::NostrRelays(NostrRelays { connected_state }) => Some(connected_state),

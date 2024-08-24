@@ -14,8 +14,8 @@ pub fn sidebar(keystache: &Keystache) -> Element<Message> {
         column![
             sidebar_button("Home", SvgIcon::Home, RouteName::Home, keystache)
                 .on_press(Message::Navigate(RouteName::Home)),
-            sidebar_button("Keys", SvgIcon::Key, RouteName::AddNostrKeypair, keystache)
-                .on_press(Message::Navigate(RouteName::AddNostrKeypair)),
+            sidebar_button("Keys", SvgIcon::Key, RouteName::NostrKeypairs, keystache)
+                .on_press(Message::Navigate(RouteName::NostrKeypairs)),
             sidebar_button("Relays", SvgIcon::Hub, RouteName::NostrRelays, keystache)
                 .on_press(Message::Navigate(RouteName::NostrRelays)),
             vertical_space(),
