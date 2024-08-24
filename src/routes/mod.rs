@@ -25,7 +25,7 @@ mod home;
 mod settings;
 mod unlock;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RouteName {
     Unlock,
     Home,
@@ -61,6 +61,46 @@ impl<'a> Route {
 
     pub fn update(&mut self, msg: Message) {
         match msg {
+            Message::Navigate(route_name) => {
+                let new_self_or = match route_name {
+                    RouteName::Unlock => Some(Self::new_locked()),
+                    RouteName::Home => {
+                        if let Some(connected_state) = self.get_connected_state() {
+                            Some(Self::Home(Home {
+                                connected_state: connected_state.clone(),
+                            }))
+                        } else {
+                            None
+                        }
+                    }
+                    RouteName::AddNostrKeypair => {
+                        if let Some(connected_state) = self.get_connected_state() {
+                            Some(Self::AddNostrKeypair(AddNostrKeypair {
+                                connected_state: connected_state.clone(),
+                                nsec: String::new(),
+                                keypair_or: None,
+                            }))
+                        } else {
+                            None
+                        }
+                    }
+                    RouteName::Settings => {
+                        if let Some(connected_state) = self.get_connected_state() {
+                            Some(Self::Settings(Settings {
+                                connected_state: connected_state.clone(),
+                            }))
+                        } else {
+                            None
+                        }
+                    }
+                };
+
+                if let Some(new_self_or) = new_self_or {
+                    *self = new_self_or;
+                } else {
+                    // TODO: Log warning that navigation failed.
+                }
+            }
             Message::UnlockPasswordInputChanged(new_password) => {
                 if let Self::Unlock(Unlock { password, .. }) = self {
                     *password = new_password;
@@ -92,29 +132,6 @@ impl<'a> Route {
                 {
                     Database::delete();
                     *db_already_exists = false;
-                }
-            }
-            Message::GoToHomePage => {
-                if let Some(connected_state) = self.get_connected_state() {
-                    *self = Self::Home(Home {
-                        connected_state: connected_state.clone(),
-                    });
-                }
-            }
-            Message::GoToAddKeypairPage => {
-                if let Self::Home(Home { connected_state }) = self {
-                    *self = Self::AddNostrKeypair(AddNostrKeypair {
-                        connected_state: connected_state.clone(),
-                        nsec: String::new(),
-                        keypair_or: None,
-                    });
-                }
-            }
-            Message::GoToSettingsPage => {
-                if let Some(connected_state) = self.get_connected_state() {
-                    *self = Self::Settings(Settings {
-                        connected_state: connected_state.clone(),
-                    });
                 }
             }
             Message::SaveKeypair => {

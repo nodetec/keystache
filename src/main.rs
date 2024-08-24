@@ -140,13 +140,11 @@ impl Application for Keystache {
 
 #[derive(Debug, Clone)]
 enum Message {
+    Navigate(RouteName),
     UnlockPasswordInputChanged(String),
     UnlockToggleSecureInput,
     UnlockPasswordSubmitted,
     DbDeleteAllData,
-    GoToHomePage,
-    GoToAddKeypairPage,
-    GoToSettingsPage,
     SaveKeypair,
     SaveKeypairNsecInputChanged(String),
     IncomingNip46Request(

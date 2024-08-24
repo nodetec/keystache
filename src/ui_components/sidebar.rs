@@ -13,9 +13,9 @@ pub fn sidebar(keystache: &Keystache) -> Element<Message> {
     let sidebar = container(
         column![
             sidebar_button("Home", SvgIcon::Home, RouteName::Home, keystache)
-                .on_press(Message::GoToHomePage),
+                .on_press(Message::Navigate(RouteName::Home)),
             sidebar_button("Keys", SvgIcon::Key, RouteName::AddNostrKeypair, keystache)
-                .on_press(Message::GoToAddKeypairPage),
+                .on_press(Message::Navigate(RouteName::AddNostrKeypair)),
             vertical_space(),
             sidebar_button(
                 "Settings",
@@ -23,7 +23,7 @@ pub fn sidebar(keystache: &Keystache) -> Element<Message> {
                 RouteName::Settings,
                 keystache
             )
-            .on_press(Message::GoToSettingsPage),
+            .on_press(Message::Navigate(RouteName::Settings)),
         ]
         .spacing(8)
         .align_items(Alignment::Start),
