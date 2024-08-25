@@ -271,9 +271,9 @@ impl Route {
                     .push(Text::new(format!("{:?}", req.0)))
                     .push(
                         row![
-                            icon_button("Approve", SvgIcon::ThumbUp, PaletteColor::Primary,)
+                            icon_button("Approve", SvgIcon::ThumbUp, PaletteColor::Primary)
                                 .on_press(KeystacheMessage::ApproveFirstIncomingNip46Request),
-                            icon_button("Reject", SvgIcon::ThumbDown, PaletteColor::Primary,)
+                            icon_button("Reject", SvgIcon::ThumbDown, PaletteColor::Primary)
                                 .on_press(KeystacheMessage::RejectFirstIncomingNip46Request),
                         ]
                         .spacing(20),
