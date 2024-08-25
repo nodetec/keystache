@@ -148,11 +148,21 @@ enum KeystacheMessage {
     UnlockToggleSecureInput,
     UnlockPasswordSubmitted,
     DbDeleteAllData,
+
     SaveKeypair(Keypair),
     SaveKeypairNsecInputChanged(String),
     DeleteKeypair {
         public_key: String,
     },
+
+    SaveRelay {
+        websocket_url: String,
+    },
+    SaveRelayWebsocketUrlInputChanged(String),
+    DeleteRelay {
+        websocket_url: String,
+    },
+
     IncomingNip46Request(
         Arc<(
             Vec<nostr_sdk::nips::nip46::Request>,

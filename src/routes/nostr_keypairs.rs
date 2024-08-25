@@ -54,11 +54,10 @@ impl List {
     fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, KeystacheMessage> {
         // TODO: Add pagination.
         let Ok(public_keys) = connected_state.db.list_public_keys(999, 0) else {
-            return container("Desktop companion for Nostr apps").push("Failed to load keys");
+            return container("Keys").push("Failed to load keys");
         };
 
-        let mut container =
-            container("Desktop companion for Nostr apps").push("Manage your Nostr accounts");
+        let mut container = container("Keys");
 
         for public_key in public_keys {
             container = container.push(row![

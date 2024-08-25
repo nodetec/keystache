@@ -19,7 +19,7 @@ use crate::{
 mod bitcoin_wallet;
 mod home;
 pub mod nostr_keypairs;
-mod nostr_relays;
+pub mod nostr_relays;
 mod settings;
 mod unlock;
 
@@ -28,7 +28,7 @@ pub enum RouteName {
     Unlock,
     Home,
     NostrKeypairs(nostr_keypairs::SubrouteName),
-    NostrRelays,
+    NostrRelays(nostr_relays::SubrouteName),
     BitcoinWallet,
     Settings,
 }
@@ -39,7 +39,7 @@ impl RouteName {
             Self::Unlock => other == Self::Unlock,
             Self::Home => other == Self::Home,
             Self::NostrKeypairs(_) => matches!(other, Self::NostrKeypairs(_)),
-            Self::NostrRelays => other == Self::NostrRelays,
+            Self::NostrRelays(_) => matches!(other, Self::NostrRelays(_)),
             Self::BitcoinWallet => other == Self::BitcoinWallet,
             Self::Settings => other == Self::Settings,
         }
@@ -72,7 +72,9 @@ impl Route {
             Self::NostrKeypairs(nostr_keypairs) => {
                 RouteName::NostrKeypairs(nostr_keypairs.subroute.to_name())
             }
-            Self::NostrRelays(_) => RouteName::NostrRelays,
+            Self::NostrRelays(nostr_relays) => {
+                RouteName::NostrRelays(nostr_relays.subroute.to_name())
+            }
             Self::BitcoinWallet(_) => RouteName::BitcoinWallet,
             Self::Settings(_) => RouteName::Settings,
         }
@@ -114,11 +116,27 @@ impl Route {
                                 }
                             })
                     }
-                    RouteName::NostrRelays => self.get_connected_state().map(|connected_state| {
-                        Self::NostrRelays(nostr_relays::Page {
-                            connected_state: connected_state.clone(),
-                        })
-                    }),
+                    RouteName::NostrRelays(subroute_name) => {
+                        self.get_connected_state()
+                            .map(|connected_state| match subroute_name {
+                                nostr_relays::SubrouteName::List => {
+                                    Self::NostrRelays(nostr_relays::Page {
+                                        connected_state: connected_state.clone(),
+                                        subroute: nostr_relays::Subroute::List(
+                                            nostr_relays::List {},
+                                        ),
+                                    })
+                                }
+                                nostr_relays::SubrouteName::Add => {
+                                    Self::NostrRelays(nostr_relays::Page {
+                                        connected_state: connected_state.clone(),
+                                        subroute: nostr_relays::Subroute::Add(nostr_relays::Add {
+                                            websocket_url: String::new(),
+                                        }),
+                                    })
+                                }
+                            })
+                    }
                     RouteName::BitcoinWallet => self.get_connected_state().map(|connected_state| {
                         Self::BitcoinWallet(bitcoin_wallet::Page {
                             connected_state: connected_state.clone(),
@@ -171,10 +189,7 @@ impl Route {
                 }
             }
             KeystacheMessage::SaveKeypair(keypair) => {
-                if let Self::NostrKeypairs(nostr_keypairs::Page {
-                    connected_state, ..
-                }) = self
-                {
+                if let Some(connected_state) = self.get_connected_state_mut() {
                     // TODO: Surface this error to the UI.
                     let _ = connected_state.db.save_keypair(&keypair);
                 }
@@ -200,6 +215,27 @@ impl Route {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     // TODO: Surface this error to the UI.
                     _ = connected_state.db.remove_keypair(&public_key);
+                }
+            }
+            KeystacheMessage::SaveRelay { websocket_url } => {
+                if let Some(connected_state) = self.get_connected_state_mut() {
+                    // TODO: Surface this error to the UI.
+                    let _ = connected_state.db.save_relay(websocket_url);
+                }
+            }
+            KeystacheMessage::SaveRelayWebsocketUrlInputChanged(new_websocket_url) => {
+                if let Self::NostrRelays(nostr_relays::Page {
+                    subroute: nostr_relays::Subroute::Add(nostr_relays::Add { websocket_url }),
+                    ..
+                }) = self
+                {
+                    *websocket_url = new_websocket_url;
+                }
+            }
+            KeystacheMessage::DeleteRelay { websocket_url } => {
+                if let Some(connected_state) = self.get_connected_state_mut() {
+                    // TODO: Surface this error to the UI.
+                    _ = connected_state.db.remove_relay(&websocket_url);
                 }
             }
             KeystacheMessage::IncomingNip46Request(data) => {
@@ -265,7 +301,9 @@ impl Route {
             Self::NostrKeypairs(nostr_keypairs::Page {
                 connected_state, ..
             }) => Some(connected_state),
-            Self::NostrRelays(nostr_relays::Page { connected_state }) => Some(connected_state),
+            Self::NostrRelays(nostr_relays::Page {
+                connected_state, ..
+            }) => Some(connected_state),
             Self::BitcoinWallet(bitcoin_wallet::Page { connected_state }) => Some(connected_state),
             Self::Settings(settings::Page { connected_state }) => Some(connected_state),
         }
@@ -278,7 +316,9 @@ impl Route {
             Self::NostrKeypairs(nostr_keypairs::Page {
                 connected_state, ..
             }) => Some(connected_state),
-            Self::NostrRelays(nostr_relays::Page { connected_state }) => Some(connected_state),
+            Self::NostrRelays(nostr_relays::Page {
+                connected_state, ..
+            }) => Some(connected_state),
             Self::BitcoinWallet(bitcoin_wallet::Page { connected_state }) => Some(connected_state),
             Self::Settings(settings::Page { connected_state }) => Some(connected_state),
         }
