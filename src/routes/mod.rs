@@ -1,20 +1,14 @@
 use std::{collections::VecDeque, str::FromStr, sync::Arc};
 
-use bitcoin_wallet::BitcoinWallet;
-use home::Home;
 use iced::{
     widget::{column, row, text, Column, Text},
     Alignment, Element,
 };
 use nip_55::nip_46::Nip46RequestApproval;
-use nostr_keypairs::{Add, List, NostrKeypairs, NostrKeypairsSubroute};
-use nostr_relays::NostrRelays;
 use nostr_sdk::{
     secp256k1::{Keypair, Secp256k1},
     SecretKey,
 };
-use settings::Settings;
-use unlock::Unlock;
 
 use crate::{
     db::Database,
@@ -24,18 +18,16 @@ use crate::{
 
 mod bitcoin_wallet;
 mod home;
-mod nostr_keypairs;
+pub mod nostr_keypairs;
 mod nostr_relays;
 mod settings;
 mod unlock;
-
-pub use nostr_keypairs::NostrKeypairsSubrouteName;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RouteName {
     Unlock,
     Home,
-    NostrKeypairs(NostrKeypairsSubrouteName),
+    NostrKeypairs(nostr_keypairs::SubrouteName),
     NostrRelays,
     BitcoinWallet,
     Settings,
@@ -56,17 +48,17 @@ impl RouteName {
 
 #[derive(Clone)]
 pub enum Route {
-    Unlock(Unlock),
-    Home(Home),
-    NostrKeypairs(NostrKeypairs),
-    NostrRelays(NostrRelays),
-    BitcoinWallet(BitcoinWallet),
-    Settings(Settings),
+    Unlock(unlock::Page),
+    Home(home::Page),
+    NostrKeypairs(nostr_keypairs::Page),
+    NostrRelays(nostr_relays::Page),
+    BitcoinWallet(bitcoin_wallet::Page),
+    Settings(settings::Page),
 }
 
 impl Route {
     pub fn new_locked() -> Self {
-        Self::Unlock(Unlock {
+        Self::Unlock(unlock::Page {
             password: String::new(),
             is_secure: true,
             db_already_exists: Database::exists(),
@@ -92,42 +84,46 @@ impl Route {
                 let new_self_or = match route_name {
                     RouteName::Unlock => Some(Self::new_locked()),
                     RouteName::Home => self.get_connected_state().map(|connected_state| {
-                        Self::Home(Home {
+                        Self::Home(home::Page {
                             connected_state: connected_state.clone(),
                         })
                     }),
                     RouteName::NostrKeypairs(subroute_name) => {
                         self.get_connected_state()
                             .map(|connected_state| match subroute_name {
-                                NostrKeypairsSubrouteName::List => {
-                                    Self::NostrKeypairs(NostrKeypairs {
+                                nostr_keypairs::SubrouteName::List => {
+                                    Self::NostrKeypairs(nostr_keypairs::Page {
                                         connected_state: connected_state.clone(),
-                                        subroute: NostrKeypairsSubroute::List(List {}),
+                                        subroute: nostr_keypairs::Subroute::List(
+                                            nostr_keypairs::List {},
+                                        ),
                                     })
                                 }
-                                NostrKeypairsSubrouteName::Add => {
-                                    Self::NostrKeypairs(NostrKeypairs {
+                                nostr_keypairs::SubrouteName::Add => {
+                                    Self::NostrKeypairs(nostr_keypairs::Page {
                                         connected_state: connected_state.clone(),
-                                        subroute: NostrKeypairsSubroute::Add(Add {
-                                            nsec: String::new(),
-                                            keypair_or: None,
-                                        }),
+                                        subroute: nostr_keypairs::Subroute::Add(
+                                            nostr_keypairs::Add {
+                                                nsec: String::new(),
+                                                keypair_or: None,
+                                            },
+                                        ),
                                     })
                                 }
                             })
                     }
                     RouteName::NostrRelays => self.get_connected_state().map(|connected_state| {
-                        Self::NostrRelays(NostrRelays {
+                        Self::NostrRelays(nostr_relays::Page {
                             connected_state: connected_state.clone(),
                         })
                     }),
                     RouteName::BitcoinWallet => self.get_connected_state().map(|connected_state| {
-                        Self::BitcoinWallet(BitcoinWallet {
+                        Self::BitcoinWallet(bitcoin_wallet::Page {
                             connected_state: connected_state.clone(),
                         })
                     }),
                     RouteName::Settings => self.get_connected_state().map(|connected_state| {
-                        Self::Settings(Settings {
+                        Self::Settings(settings::Page {
                             connected_state: connected_state.clone(),
                         })
                     }),
@@ -140,21 +136,21 @@ impl Route {
                 }
             }
             KeystacheMessage::UnlockPasswordInputChanged(new_password) => {
-                if let Self::Unlock(Unlock { password, .. }) = self {
+                if let Self::Unlock(unlock::Page { password, .. }) = self {
                     *password = new_password;
                 }
             }
             KeystacheMessage::UnlockToggleSecureInput => {
-                if let Self::Unlock(Unlock { is_secure, .. }) = self {
+                if let Self::Unlock(unlock::Page { is_secure, .. }) = self {
                     *is_secure = !*is_secure;
                 }
             }
             KeystacheMessage::UnlockPasswordSubmitted => {
-                if let Self::Unlock(Unlock { password, .. }) = self {
+                if let Self::Unlock(unlock::Page { password, .. }) = self {
                     if let Ok(db) = Database::open_or_create_in_app_data_dir(password) {
                         let db = Arc::new(db);
 
-                        *self = Self::Home(Home {
+                        *self = Self::Home(home::Page {
                             connected_state: ConnectedState {
                                 db,
                                 in_flight_nip46_requests: VecDeque::new(),
@@ -164,7 +160,7 @@ impl Route {
                 }
             }
             KeystacheMessage::DbDeleteAllData => {
-                if let Self::Unlock(Unlock {
+                if let Self::Unlock(unlock::Page {
                     db_already_exists, ..
                 }) = self
                 {
@@ -173,10 +169,10 @@ impl Route {
                 }
             }
             KeystacheMessage::SaveKeypair => {
-                if let Self::NostrKeypairs(NostrKeypairs {
+                if let Self::NostrKeypairs(nostr_keypairs::Page {
                     connected_state,
                     subroute:
-                        NostrKeypairsSubroute::Add(Add {
+                        nostr_keypairs::Subroute::Add(nostr_keypairs::Add {
                             keypair_or: Some(keypair),
                             ..
                         }),
@@ -187,9 +183,9 @@ impl Route {
                 }
             }
             KeystacheMessage::SaveKeypairNsecInputChanged(new_nsec) => {
-                if let Self::NostrKeypairs(NostrKeypairs {
+                if let Self::NostrKeypairs(nostr_keypairs::Page {
                     subroute:
-                        NostrKeypairsSubroute::Add(Add {
+                        nostr_keypairs::Subroute::Add(nostr_keypairs::Add {
                             nsec, keypair_or, ..
                         }),
                     ..
@@ -262,26 +258,26 @@ impl Route {
     pub fn get_connected_state(&self) -> Option<&ConnectedState> {
         match self {
             Self::Unlock { .. } => None,
-            Self::Home(Home { connected_state }) => Some(connected_state),
-            Self::NostrKeypairs(NostrKeypairs {
+            Self::Home(home::Page { connected_state }) => Some(connected_state),
+            Self::NostrKeypairs(nostr_keypairs::Page {
                 connected_state, ..
             }) => Some(connected_state),
-            Self::NostrRelays(NostrRelays { connected_state }) => Some(connected_state),
-            Self::BitcoinWallet(BitcoinWallet { connected_state }) => Some(connected_state),
-            Self::Settings(Settings { connected_state }) => Some(connected_state),
+            Self::NostrRelays(nostr_relays::Page { connected_state }) => Some(connected_state),
+            Self::BitcoinWallet(bitcoin_wallet::Page { connected_state }) => Some(connected_state),
+            Self::Settings(settings::Page { connected_state }) => Some(connected_state),
         }
     }
 
     fn get_connected_state_mut(&mut self) -> Option<&mut ConnectedState> {
         match self {
             Self::Unlock { .. } => None,
-            Self::Home(Home { connected_state }) => Some(connected_state),
-            Self::NostrKeypairs(NostrKeypairs {
+            Self::Home(home::Page { connected_state }) => Some(connected_state),
+            Self::NostrKeypairs(nostr_keypairs::Page {
                 connected_state, ..
             }) => Some(connected_state),
-            Self::NostrRelays(NostrRelays { connected_state }) => Some(connected_state),
-            Self::BitcoinWallet(BitcoinWallet { connected_state }) => Some(connected_state),
-            Self::Settings(Settings { connected_state }) => Some(connected_state),
+            Self::NostrRelays(nostr_relays::Page { connected_state }) => Some(connected_state),
+            Self::BitcoinWallet(bitcoin_wallet::Page { connected_state }) => Some(connected_state),
+            Self::Settings(settings::Page { connected_state }) => Some(connected_state),
         }
     }
 }

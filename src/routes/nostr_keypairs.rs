@@ -9,23 +9,38 @@ use crate::{
 
 use super::{container, RouteName};
 
+#[derive(Clone)]
+pub struct Page {
+    pub connected_state: ConnectedState,
+    pub subroute: Subroute,
+}
+
+impl Page {
+    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+        match &self.subroute {
+            Subroute::List(list) => list.view(&self.connected_state),
+            Subroute::Add(add) => add.view(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NostrKeypairsSubrouteName {
+pub enum SubrouteName {
     List,
     Add,
 }
 
 #[derive(Clone)]
-pub enum NostrKeypairsSubroute {
+pub enum Subroute {
     List(List),
     Add(Add),
 }
 
-impl NostrKeypairsSubroute {
-    pub fn to_name(&self) -> NostrKeypairsSubrouteName {
+impl Subroute {
+    pub fn to_name(&self) -> SubrouteName {
         match self {
-            Self::List(_) => NostrKeypairsSubrouteName::List,
-            Self::Add(_) => NostrKeypairsSubrouteName::Add,
+            Self::List(_) => SubrouteName::List,
+            Self::Add(_) => SubrouteName::Add,
         }
     }
 }
@@ -53,9 +68,7 @@ impl List {
 
         container = container.push(
             icon_button("Add Keypair", SvgIcon::Add, PaletteColor::Primary).on_press(
-                KeystacheMessage::Navigate(RouteName::NostrKeypairs(
-                    NostrKeypairsSubrouteName::Add,
-                )),
+                KeystacheMessage::Navigate(RouteName::NostrKeypairs(SubrouteName::Add)),
             ),
         );
 
@@ -87,25 +100,8 @@ impl Add {
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    KeystacheMessage::Navigate(RouteName::NostrKeypairs(
-                        NostrKeypairsSubrouteName::List,
-                    )),
+                    KeystacheMessage::Navigate(RouteName::NostrKeypairs(SubrouteName::List)),
                 ),
             )
-    }
-}
-
-#[derive(Clone)]
-pub struct NostrKeypairs {
-    pub connected_state: ConnectedState,
-    pub subroute: NostrKeypairsSubroute,
-}
-
-impl NostrKeypairs {
-    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
-        match &self.subroute {
-            NostrKeypairsSubroute::List(list) => list.view(&self.connected_state),
-            NostrKeypairsSubroute::Add(add) => add.view(),
-        }
     }
 }

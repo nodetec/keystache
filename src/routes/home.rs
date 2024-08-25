@@ -5,11 +5,11 @@ use crate::{util::truncate_text, ConnectedState, KeystacheMessage};
 use super::container;
 
 #[derive(Clone)]
-pub struct Home {
+pub struct Page {
     pub connected_state: ConnectedState,
 }
 
-impl Home {
+impl Page {
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         container("Home").push(Text::new("Work in progress! Check back later."))
     }

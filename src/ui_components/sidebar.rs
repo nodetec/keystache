@@ -3,7 +3,7 @@ use iced::widget::{column, container, vertical_space};
 use iced::Border;
 use iced::{Alignment, Element, Shadow};
 
-use crate::routes::{NostrKeypairsSubrouteName, RouteName};
+use crate::routes::{nostr_keypairs, RouteName};
 use crate::{Keystache, KeystacheMessage};
 
 use super::util::lighten;
@@ -17,11 +17,11 @@ pub fn sidebar(keystache: &Keystache) -> Element<KeystacheMessage> {
             sidebar_button(
                 "Keys",
                 SvgIcon::Key,
-                RouteName::NostrKeypairs(NostrKeypairsSubrouteName::List),
+                RouteName::NostrKeypairs(nostr_keypairs::SubrouteName::List),
                 keystache
             )
             .on_press(KeystacheMessage::Navigate(RouteName::NostrKeypairs(
-                NostrKeypairsSubrouteName::List
+                nostr_keypairs::SubrouteName::List
             ))),
             sidebar_button("Relays", SvgIcon::Hub, RouteName::NostrRelays, keystache)
                 .on_press(KeystacheMessage::Navigate(RouteName::NostrRelays)),

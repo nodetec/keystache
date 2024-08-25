@@ -5,11 +5,11 @@ use crate::{ConnectedState, KeystacheMessage};
 use super::container;
 
 #[derive(Clone)]
-pub struct BitcoinWallet {
+pub struct Page {
     pub connected_state: ConnectedState,
 }
 
-impl BitcoinWallet {
+impl Page {
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         container("Wallet").push(Text::new("Work in progress! Check back later."))
     }

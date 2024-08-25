@@ -11,13 +11,13 @@ use crate::{
 use super::container;
 
 #[derive(Clone)]
-pub struct Unlock {
+pub struct Page {
     pub password: String,
     pub is_secure: bool,
     pub db_already_exists: bool,
 }
 
-impl Unlock {
+impl Page {
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         let Self {
             password,
