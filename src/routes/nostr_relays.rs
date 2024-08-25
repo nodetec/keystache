@@ -10,6 +10,8 @@ pub struct Page {
 }
 
 impl Page {
+    // TODO: Remove this clippy allow.
+    #[allow(clippy::unused_self)]
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         container("Nostr Relays").push(Text::new("Work in progress! Check back later."))
     }

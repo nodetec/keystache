@@ -10,6 +10,8 @@ pub use sidebar::*;
 
 mod util;
 
+// TODO: Remove this allow unused.
+#[allow(unused)]
 #[derive(PartialEq, Eq)]
 pub enum PaletteColor {
     Background,

@@ -49,6 +49,8 @@ impl Subroute {
 pub struct List {}
 
 impl List {
+    // TODO: Remove this clippy allow.
+    #[allow(clippy::unused_self)]
     fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, KeystacheMessage> {
         // TODO: Add pagination.
         let Ok(public_keys) = connected_state.db.list_public_keys(999, 0) else {

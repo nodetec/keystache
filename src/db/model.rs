@@ -1,3 +1,6 @@
+// Diesel requires that these structs contain all fields in the table, even if they are not used.
+#![allow(unused)]
+
 use super::schema;
 use chrono::NaiveDateTime;
 use diesel::prelude::*;

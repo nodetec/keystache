@@ -2,6 +2,7 @@
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::match_same_arms)]
 #![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::module_name_repetitions)]
 #![allow(clippy::significant_drop_tightening)]
 
 mod db;

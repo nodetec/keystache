@@ -34,7 +34,7 @@ pub enum RouteName {
 }
 
 impl RouteName {
-    pub fn is_same_top_level_route_as(&self, other: Self) -> bool {
+    pub fn is_same_top_level_route_as(self, other: Self) -> bool {
         match self {
             Self::Unlock => other == Self::Unlock,
             Self::Home => other == Self::Home,
@@ -78,6 +78,8 @@ impl Route {
         }
     }
 
+    // TODO: Remove this clippy allow.
+    #[allow(clippy::too_many_lines)]
     pub fn update(&mut self, msg: KeystacheMessage) {
         match msg {
             KeystacheMessage::Navigate(route_name) => {

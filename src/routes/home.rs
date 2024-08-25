@@ -1,6 +1,6 @@
 use iced::widget::{Column, Text};
 
-use crate::{util::truncate_text, ConnectedState, KeystacheMessage};
+use crate::{ConnectedState, KeystacheMessage};
 
 use super::container;
 
@@ -10,6 +10,8 @@ pub struct Page {
 }
 
 impl Page {
+    // TODO: Remove this clippy allow.
+    #[allow(clippy::unused_self)]
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         container("Home").push(Text::new("Work in progress! Check back later."))
     }
