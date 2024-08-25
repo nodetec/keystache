@@ -21,6 +21,7 @@ use iced::widget::{column, container, row, scrollable, Theme};
 use iced::window::settings::PlatformSpecific;
 use iced::{Command, Element, Length, Pixels, Renderer, Settings, Size};
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
+use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::PublicKey;
 use routes::{Route, RouteName};
 use ui_components::sidebar;
@@ -147,8 +148,11 @@ enum KeystacheMessage {
     UnlockToggleSecureInput,
     UnlockPasswordSubmitted,
     DbDeleteAllData,
-    SaveKeypair,
+    SaveKeypair(Keypair),
     SaveKeypairNsecInputChanged(String),
+    DeleteKeypair {
+        public_key: String,
+    },
     IncomingNip46Request(
         Arc<(
             Vec<nostr_sdk::nips::nip46::Request>,

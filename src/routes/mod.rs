@@ -170,18 +170,13 @@ impl Route {
                     *db_already_exists = false;
                 }
             }
-            KeystacheMessage::SaveKeypair => {
+            KeystacheMessage::SaveKeypair(keypair) => {
                 if let Self::NostrKeypairs(nostr_keypairs::Page {
-                    connected_state,
-                    subroute:
-                        nostr_keypairs::Subroute::Add(nostr_keypairs::Add {
-                            keypair_or: Some(keypair),
-                            ..
-                        }),
+                    connected_state, ..
                 }) = self
                 {
                     // TODO: Surface this error to the UI.
-                    let _ = connected_state.db.save_keypair(keypair);
+                    let _ = connected_state.db.save_keypair(&keypair);
                 }
             }
             KeystacheMessage::SaveKeypairNsecInputChanged(new_nsec) => {
@@ -199,6 +194,12 @@ impl Route {
                     *keypair_or = SecretKey::from_str(nsec).map_or(None, |secret_key| {
                         Some(Keypair::from_secret_key(&Secp256k1::new(), &secret_key))
                     });
+                }
+            }
+            KeystacheMessage::DeleteKeypair { public_key } => {
+                if let Some(connected_state) = self.get_connected_state_mut() {
+                    // TODO: Surface this error to the UI.
+                    _ = connected_state.db.remove_keypair(&public_key);
                 }
             }
             KeystacheMessage::IncomingNip46Request(data) => {

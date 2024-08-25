@@ -65,7 +65,7 @@ impl Page {
 
         if *db_already_exists {
             container = container.push(
-                icon_button("Delete All Data", SvgIcon::Delete, PaletteColor::Background)
+                icon_button("Delete All Data", SvgIcon::Delete, PaletteColor::Danger)
                     .on_press(KeystacheMessage::DbDeleteAllData),
             );
         }

@@ -10,6 +10,7 @@ use iced::{
 pub enum SvgIcon {
     Add,
     ArrowBack,
+    Casino,
     CurrencyBitcoin,
     Delete,
     Home,
@@ -36,6 +37,7 @@ impl SvgIcon {
         match self {
             Self::Add => icon_handle!("add.svg"),
             Self::ArrowBack => icon_handle!("arrow_back.svg"),
+            Self::Casino => icon_handle!("casino.svg"),
             Self::CurrencyBitcoin => icon_handle!("currency_bitcoin.svg"),
             Self::Delete => icon_handle!("delete.svg"),
             Self::Home => icon_handle!("home.svg"),

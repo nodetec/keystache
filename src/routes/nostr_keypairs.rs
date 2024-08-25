@@ -1,5 +1,5 @@
-use iced::widget::{text_input, Column, Text};
-use nostr_sdk::secp256k1::Keypair;
+use iced::widget::{row, text_input, Column, Text};
+use nostr_sdk::secp256k1::{rand::thread_rng, Keypair};
 
 use crate::{
     ui_components::{icon_button, PaletteColor, SvgIcon},
@@ -61,11 +61,13 @@ impl List {
             container("Desktop companion for Nostr apps").push("Manage your Nostr accounts");
 
         for public_key in public_keys {
-            container = container.push(
+            container = container.push(row![
                 Text::new(truncate_text(&public_key, 12, true))
                     .size(20)
                     .horizontal_alignment(iced::alignment::Horizontal::Center),
-            );
+                icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger)
+                    .on_press(KeystacheMessage::DeleteKeypair { public_key }),
+            ]);
         }
 
         container = container.push(
@@ -94,11 +96,18 @@ impl Add {
                     .size(30),
             )
             .push(
-                icon_button("Save", SvgIcon::Save, PaletteColor::Primary).on_press_maybe(
-                    self.keypair_or
-                        .is_some()
-                        .then_some(KeystacheMessage::SaveKeypair),
-                ),
+                icon_button("Save", SvgIcon::Save, PaletteColor::Primary)
+                    .on_press_maybe(self.keypair_or.map(KeystacheMessage::SaveKeypair)),
+            )
+            .push(
+                icon_button(
+                    "Generate New Keypair",
+                    SvgIcon::Casino,
+                    PaletteColor::Primary,
+                )
+                .on_press(KeystacheMessage::SaveKeypair(Keypair::new_global(
+                    &mut thread_rng(),
+                ))),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
