@@ -8,6 +8,7 @@ use iced::{
 
 #[derive(Clone, Copy)]
 pub enum SvgIcon {
+    Add,
     ArrowBack,
     CurrencyBitcoin,
     Delete,
@@ -33,6 +34,7 @@ macro_rules! icon_handle {
 impl SvgIcon {
     pub fn view<'a>(self, width: f32, height: f32, color: Color) -> Svg<'a, Theme> {
         match self {
+            Self::Add => icon_handle!("add.svg"),
             Self::ArrowBack => icon_handle!("arrow_back.svg"),
             Self::CurrencyBitcoin => icon_handle!("currency_bitcoin.svg"),
             Self::Delete => icon_handle!("delete.svg"),

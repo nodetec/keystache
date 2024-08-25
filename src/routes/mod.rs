@@ -7,7 +7,7 @@ use iced::{
     Alignment, Element,
 };
 use nip_55::nip_46::Nip46RequestApproval;
-use nostr_keypairs::NostrKeypairs;
+use nostr_keypairs::{Add, List, NostrKeypairs, NostrKeypairsSubroute};
 use nostr_relays::NostrRelays;
 use nostr_sdk::{
     secp256k1::{Keypair, Secp256k1},
@@ -29,14 +29,29 @@ mod nostr_relays;
 mod settings;
 mod unlock;
 
+pub use nostr_keypairs::NostrKeypairsSubrouteName;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RouteName {
     Unlock,
     Home,
-    NostrKeypairs,
+    NostrKeypairs(NostrKeypairsSubrouteName),
     NostrRelays,
     BitcoinWallet,
     Settings,
+}
+
+impl RouteName {
+    pub fn is_same_top_level_route_as(&self, other: Self) -> bool {
+        match self {
+            Self::Unlock => other == Self::Unlock,
+            Self::Home => other == Self::Home,
+            Self::NostrKeypairs(_) => matches!(other, Self::NostrKeypairs(_)),
+            Self::NostrRelays => other == Self::NostrRelays,
+            Self::BitcoinWallet => other == Self::BitcoinWallet,
+            Self::Settings => other == Self::Settings,
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -62,7 +77,9 @@ impl Route {
         match self {
             Self::Unlock(_) => RouteName::Unlock,
             Self::Home(_) => RouteName::Home,
-            Self::NostrKeypairs(_) => RouteName::NostrKeypairs,
+            Self::NostrKeypairs(nostr_keypairs) => {
+                RouteName::NostrKeypairs(nostr_keypairs.subroute.to_name())
+            }
             Self::NostrRelays(_) => RouteName::NostrRelays,
             Self::BitcoinWallet(_) => RouteName::BitcoinWallet,
             Self::Settings(_) => RouteName::Settings,
@@ -79,13 +96,26 @@ impl Route {
                             connected_state: connected_state.clone(),
                         })
                     }),
-                    RouteName::NostrKeypairs => self.get_connected_state().map(|connected_state| {
-                        Self::NostrKeypairs(NostrKeypairs {
-                            connected_state: connected_state.clone(),
-                            nsec: String::new(),
-                            keypair_or: None,
-                        })
-                    }),
+                    RouteName::NostrKeypairs(subroute_name) => {
+                        self.get_connected_state()
+                            .map(|connected_state| match subroute_name {
+                                NostrKeypairsSubrouteName::List => {
+                                    Self::NostrKeypairs(NostrKeypairs {
+                                        connected_state: connected_state.clone(),
+                                        subroute: NostrKeypairsSubroute::List(List {}),
+                                    })
+                                }
+                                NostrKeypairsSubrouteName::Add => {
+                                    Self::NostrKeypairs(NostrKeypairs {
+                                        connected_state: connected_state.clone(),
+                                        subroute: NostrKeypairsSubroute::Add(Add {
+                                            nsec: String::new(),
+                                            keypair_or: None,
+                                        }),
+                                    })
+                                }
+                            })
+                    }
                     RouteName::NostrRelays => self.get_connected_state().map(|connected_state| {
                         Self::NostrRelays(NostrRelays {
                             connected_state: connected_state.clone(),
@@ -145,8 +175,11 @@ impl Route {
             KeystacheMessage::SaveKeypair => {
                 if let Self::NostrKeypairs(NostrKeypairs {
                     connected_state,
-                    keypair_or: Some(keypair),
-                    ..
+                    subroute:
+                        NostrKeypairsSubroute::Add(Add {
+                            keypair_or: Some(keypair),
+                            ..
+                        }),
                 }) = self
                 {
                     // TODO: Surface this error to the UI.
@@ -155,7 +188,11 @@ impl Route {
             }
             KeystacheMessage::SaveKeypairNsecInputChanged(new_nsec) => {
                 if let Self::NostrKeypairs(NostrKeypairs {
-                    nsec, keypair_or, ..
+                    subroute:
+                        NostrKeypairsSubroute::Add(Add {
+                            nsec, keypair_or, ..
+                        }),
+                    ..
                 }) = self
                 {
                     *nsec = new_nsec;
