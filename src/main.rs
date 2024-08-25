@@ -84,9 +84,7 @@ impl Application for Keystache {
     }
 
     fn update(&mut self, event: KeystacheMessage) -> Command<KeystacheMessage> {
-        self.page.update(event);
-
-        Command::none()
+        self.page.update(event)
     }
 
     fn view(&self) -> Element<KeystacheMessage> {

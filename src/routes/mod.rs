@@ -2,7 +2,7 @@ use std::{collections::VecDeque, str::FromStr, sync::Arc};
 
 use iced::{
     widget::{column, row, text, Column, Text},
-    Alignment, Element,
+    Alignment, Command, Element,
 };
 use nip_55::nip_46::Nip46RequestApproval;
 use nostr_sdk::{
@@ -82,7 +82,7 @@ impl Route {
 
     // TODO: Remove this clippy allow.
     #[allow(clippy::too_many_lines)]
-    pub fn update(&mut self, msg: KeystacheMessage) {
+    pub fn update(&mut self, msg: KeystacheMessage) -> Command<KeystacheMessage> {
         match msg {
             KeystacheMessage::Navigate(route_name) => {
                 let new_self_or = match route_name {
@@ -154,16 +154,22 @@ impl Route {
                 } else {
                     // TODO: Log warning that navigation failed.
                 }
+
+                Command::none()
             }
             KeystacheMessage::UnlockPasswordInputChanged(new_password) => {
                 if let Self::Unlock(unlock::Page { password, .. }) = self {
                     *password = new_password;
                 }
+
+                Command::none()
             }
             KeystacheMessage::UnlockToggleSecureInput => {
                 if let Self::Unlock(unlock::Page { is_secure, .. }) = self {
                     *is_secure = !*is_secure;
                 }
+
+                Command::none()
             }
             KeystacheMessage::UnlockPasswordSubmitted => {
                 if let Self::Unlock(unlock::Page { password, .. }) = self {
@@ -178,6 +184,8 @@ impl Route {
                         });
                     }
                 }
+
+                Command::none()
             }
             KeystacheMessage::DbDeleteAllData => {
                 if let Self::Unlock(unlock::Page {
@@ -187,12 +195,16 @@ impl Route {
                     Database::delete();
                     *db_already_exists = false;
                 }
+
+                Command::none()
             }
             KeystacheMessage::SaveKeypair(keypair) => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     // TODO: Surface this error to the UI.
                     let _ = connected_state.db.save_keypair(&keypair);
                 }
+
+                Command::none()
             }
             KeystacheMessage::SaveKeypairNsecInputChanged(new_nsec) => {
                 if let Self::NostrKeypairs(nostr_keypairs::Page {
@@ -210,18 +222,24 @@ impl Route {
                         Some(Keypair::from_secret_key(&Secp256k1::new(), &secret_key))
                     });
                 }
+
+                Command::none()
             }
             KeystacheMessage::DeleteKeypair { public_key } => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     // TODO: Surface this error to the UI.
                     _ = connected_state.db.remove_keypair(&public_key);
                 }
+
+                Command::none()
             }
             KeystacheMessage::SaveRelay { websocket_url } => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     // TODO: Surface this error to the UI.
                     let _ = connected_state.db.save_relay(websocket_url);
                 }
+
+                Command::none()
             }
             KeystacheMessage::SaveRelayWebsocketUrlInputChanged(new_websocket_url) => {
                 if let Self::NostrRelays(nostr_relays::Page {
@@ -231,17 +249,23 @@ impl Route {
                 {
                     *websocket_url = new_websocket_url;
                 }
+
+                Command::none()
             }
             KeystacheMessage::DeleteRelay { websocket_url } => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     // TODO: Surface this error to the UI.
                     _ = connected_state.db.remove_relay(&websocket_url);
                 }
+
+                Command::none()
             }
             KeystacheMessage::IncomingNip46Request(data) => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     connected_state.in_flight_nip46_requests.push_back(data);
                 }
+
+                Command::none()
             }
             KeystacheMessage::ApproveFirstIncomingNip46Request => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
@@ -250,6 +274,8 @@ impl Route {
                         req.2.send(Nip46RequestApproval::Approve).unwrap();
                     }
                 }
+
+                Command::none()
             }
             KeystacheMessage::RejectFirstIncomingNip46Request => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
@@ -258,8 +284,10 @@ impl Route {
                         req.2.send(Nip46RequestApproval::Reject).unwrap();
                     }
                 }
+
+                Command::none()
             }
-        };
+        }
     }
 
     pub fn view(&self) -> Element<KeystacheMessage> {
