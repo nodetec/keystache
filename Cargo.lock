@@ -1308,7 +1308,7 @@ checksum = "75b325c5dbd37f80359721ad39aca5a29fb04c89279657cffdda8736d0c0b9d2"
 [[package]]
 name = "dpi"
 version = "0.1.1"
-source = "git+https://github.com/iced-rs/winit.git?rev=8affa522bc6dcc497d332a28c03491d22a22f5a7#8affa522bc6dcc497d332a28c03491d22a22f5a7"
+source = "git+https://github.com/iced-rs/winit.git?rev=254d6b3420ce4e674f516f7a2bd440665e05484d#254d6b3420ce4e674f516f7a2bd440665e05484d"
 
 [[package]]
 name = "drm"
@@ -2298,7 +2298,7 @@ dependencies = [
 [[package]]
 name = "iced"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "iced_core",
  "iced_futures",
@@ -2311,7 +2311,7 @@ dependencies = [
 [[package]]
 name = "iced_core"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "bitflags 2.6.0",
  "bytes",
@@ -2321,7 +2321,6 @@ dependencies = [
  "num-traits",
  "once_cell",
  "palette",
- "raw-window-handle",
  "rustc-hash 1.1.0",
  "smol_str",
  "thiserror",
@@ -2331,7 +2330,7 @@ dependencies = [
 [[package]]
 name = "iced_futures"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "futures",
  "iced_core",
@@ -2345,7 +2344,7 @@ dependencies = [
 [[package]]
 name = "iced_graphics"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "bitflags 2.6.0",
  "bytemuck",
@@ -2364,7 +2363,7 @@ dependencies = [
 [[package]]
 name = "iced_renderer"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "iced_graphics",
  "iced_tiny_skia",
@@ -2376,7 +2375,7 @@ dependencies = [
 [[package]]
 name = "iced_runtime"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "bytes",
  "iced_core",
@@ -2388,7 +2387,7 @@ dependencies = [
 [[package]]
 name = "iced_tiny_skia"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "bytemuck",
  "cosmic-text",
@@ -2404,7 +2403,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "bitflags 2.6.0",
  "bytemuck",
@@ -2424,7 +2423,7 @@ dependencies = [
 [[package]]
 name = "iced_widget"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "iced_renderer",
  "iced_runtime",
@@ -2437,7 +2436,7 @@ dependencies = [
 [[package]]
 name = "iced_winit"
 version = "0.13.0-dev"
-source = "git+https://github.com/iced-rs/iced?rev=b30d34f#b30d34f728fdae65d4d2cb0afe2dcade9b4bb0dc"
+source = "git+https://github.com/iced-rs/iced?rev=19db068#19db068bbbebcda1756720525da247f35bd3a5e0"
 dependencies = [
  "iced_futures",
  "iced_graphics",
@@ -3350,6 +3349,30 @@ dependencies = [
 ]
 
 [[package]]
+name = "objc2-cloud-kit"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74dd3b56391c7a0596a295029734d3c1c5e7e510a4cb30245f8221ccea96b009"
+dependencies = [
+ "bitflags 2.6.0",
+ "block2",
+ "objc2",
+ "objc2-core-location",
+ "objc2-foundation",
+]
+
+[[package]]
+name = "objc2-contacts"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5ff520e9c33812fd374d8deecef01d4a840e7b41862d849513de77e44aa4889"
+dependencies = [
+ "block2",
+ "objc2",
+ "objc2-foundation",
+]
+
+[[package]]
 name = "objc2-core-data"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3374,6 +3397,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "objc2-core-location"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "000cfee34e683244f284252ee206a27953279d370e309649dc3ee317b37e5781"
+dependencies = [
+ "block2",
+ "objc2",
+ "objc2-contacts",
+ "objc2-foundation",
+]
+
+[[package]]
 name = "objc2-encode"
 version = "4.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3390,6 +3425,18 @@ dependencies = [
  "dispatch",
  "libc",
  "objc2",
+]
+
+[[package]]
+name = "objc2-link-presentation"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1a1ae721c5e35be65f01a03b6d2ac13a54cb4fa70d8a5da293d7b0020261398"
+dependencies = [
+ "block2",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
 ]
 
 [[package]]
@@ -3415,6 +3462,61 @@ dependencies = [
  "objc2",
  "objc2-foundation",
  "objc2-metal",
+]
+
+[[package]]
+name = "objc2-symbols"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a684efe3dec1b305badae1a28f6555f6ddd3bb2c2267896782858d5a78404dc"
+dependencies = [
+ "objc2",
+ "objc2-foundation",
+]
+
+[[package]]
+name = "objc2-ui-kit"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b8bb46798b20cd6b91cbd113524c490f1686f4c4e8f49502431415f3512e2b6f"
+dependencies = [
+ "bitflags 2.6.0",
+ "block2",
+ "objc2",
+ "objc2-cloud-kit",
+ "objc2-core-data",
+ "objc2-core-image",
+ "objc2-core-location",
+ "objc2-foundation",
+ "objc2-link-presentation",
+ "objc2-quartz-core",
+ "objc2-symbols",
+ "objc2-uniform-type-identifiers",
+ "objc2-user-notifications",
+]
+
+[[package]]
+name = "objc2-uniform-type-identifiers"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44fa5f9748dbfe1ca6c0b79ad20725a11eca7c2218bceb4b005cb1be26273bfe"
+dependencies = [
+ "block2",
+ "objc2",
+ "objc2-foundation",
+]
+
+[[package]]
+name = "objc2-user-notifications"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76cfcbf642358e8689af64cee815d139339f3ed8ad05103ed5eaf73db8d84cb3"
+dependencies = [
+ "bitflags 2.6.0",
+ "block2",
+ "objc2",
+ "objc2-core-location",
+ "objc2-foundation",
 ]
 
 [[package]]
@@ -6294,13 +6396,14 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winit"
-version = "0.30.0"
-source = "git+https://github.com/iced-rs/winit.git?rev=8affa522bc6dcc497d332a28c03491d22a22f5a7#8affa522bc6dcc497d332a28c03491d22a22f5a7"
+version = "0.30.1"
+source = "git+https://github.com/iced-rs/winit.git?rev=254d6b3420ce4e674f516f7a2bd440665e05484d#254d6b3420ce4e674f516f7a2bd440665e05484d"
 dependencies = [
  "ahash 0.8.11",
  "android-activity",
  "atomic-waker",
  "bitflags 2.6.0",
+ "block2",
  "bytemuck",
  "calloop 0.12.4",
  "cfg_aliases 0.2.1",
@@ -6316,6 +6419,7 @@ dependencies = [
  "objc2",
  "objc2-app-kit",
  "objc2-foundation",
+ "objc2-ui-kit",
  "orbclient",
  "percent-encoding",
  "pin-project",

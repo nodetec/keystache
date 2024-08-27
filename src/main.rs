@@ -20,7 +20,7 @@ use iced::advanced::Application;
 use iced::futures::{SinkExt, StreamExt};
 use iced::widget::{column, container, row, scrollable, Theme};
 use iced::window::settings::PlatformSpecific;
-use iced::{Command, Element, Length, Pixels, Renderer, Settings, Size};
+use iced::{Element, Length, Pixels, Renderer, Settings, Size, Task};
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
 use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::PublicKey;
@@ -71,12 +71,12 @@ impl Application for Keystache {
     type Flags = ();
     type Renderer = Renderer;
 
-    fn new(_flags: Self::Flags) -> (Self, Command<KeystacheMessage>) {
+    fn new(_flags: Self::Flags) -> (Self, Task<KeystacheMessage>) {
         (
             Self {
                 page: Route::new_locked(),
             },
-            Command::none(),
+            Task::none(),
         )
     }
 
@@ -84,7 +84,7 @@ impl Application for Keystache {
         "Keystache".to_string()
     }
 
-    fn update(&mut self, event: KeystacheMessage) -> Command<KeystacheMessage> {
+    fn update(&mut self, event: KeystacheMessage) -> Task<KeystacheMessage> {
         self.page.update(event)
     }
 
@@ -92,16 +92,14 @@ impl Application for Keystache {
         let Self { page, .. } = self;
 
         let mut content: Element<KeystacheMessage> = Element::new(scrollable(
-            container(column![page.view()].spacing(20).padding(20))
-                .width(Length::Fill)
-                .center_x(),
+            container(column![page.view()].spacing(20).padding(20)).center_x(Length::Fill),
         ));
 
         if page.to_name() != RouteName::Unlock {
             content = Element::new(row![sidebar(self), content]);
         };
 
-        container(content).height(Length::Fill).center_y().into()
+        container(content).center_y(Length::Fill).into()
     }
 
     fn subscription(&self) -> iced::Subscription<Self::Message> {

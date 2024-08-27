@@ -4,7 +4,7 @@ use bitcoin_wallet::{MaybeLoadingFederationConfig, ParsedFederationInviteCodeSta
 use fedimint_core::invite_code::InviteCode;
 use iced::{
     widget::{column, row, text, Column, Text},
-    Alignment, Command, Element,
+    Alignment, Element, Task,
 };
 use nip_55::nip_46::Nip46RequestApproval;
 use nostr_sdk::{
@@ -85,7 +85,7 @@ impl Route {
     // TODO: Remove this clippy allow.
     #[allow(clippy::too_many_lines)]
     #[allow(clippy::cognitive_complexity)]
-    pub fn update(&mut self, msg: KeystacheMessage) -> Command<KeystacheMessage> {
+    pub fn update(&mut self, msg: KeystacheMessage) -> Task<KeystacheMessage> {
         match msg {
             KeystacheMessage::Navigate(route_name) => {
                 let new_self_or = match route_name {
@@ -160,21 +160,21 @@ impl Route {
                     // TODO: Log warning that navigation failed.
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::UnlockPasswordInputChanged(new_password) => {
                 if let Self::Unlock(unlock::Page { password, .. }) = self {
                     *password = new_password;
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::UnlockToggleSecureInput => {
                 if let Self::Unlock(unlock::Page { is_secure, .. }) = self {
                     *is_secure = !*is_secure;
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::UnlockPasswordSubmitted => {
                 if let Self::Unlock(unlock::Page { password, .. }) = self {
@@ -190,7 +190,7 @@ impl Route {
                     }
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::DbDeleteAllData => {
                 if let Self::Unlock(unlock::Page {
@@ -201,7 +201,7 @@ impl Route {
                     *db_already_exists = false;
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::SaveKeypair(keypair) => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
@@ -209,7 +209,7 @@ impl Route {
                     let _ = connected_state.db.save_keypair(&keypair);
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::SaveKeypairNsecInputChanged(new_nsec) => {
                 if let Self::NostrKeypairs(nostr_keypairs::Page {
@@ -228,7 +228,7 @@ impl Route {
                     });
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::DeleteKeypair { public_key } => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
@@ -236,7 +236,7 @@ impl Route {
                     _ = connected_state.db.remove_keypair(&public_key);
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::SaveRelay { websocket_url } => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
@@ -244,7 +244,7 @@ impl Route {
                     let _ = connected_state.db.save_relay(websocket_url);
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::SaveRelayWebsocketUrlInputChanged(new_websocket_url) => {
                 if let Self::NostrRelays(nostr_relays::Page {
@@ -255,7 +255,7 @@ impl Route {
                     *websocket_url = new_websocket_url;
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::DeleteRelay { websocket_url } => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
@@ -263,7 +263,7 @@ impl Route {
                     _ = connected_state.db.remove_relay(&websocket_url);
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::JoinFederationInviteCodeInputChanged(new_federation_invite_code) => {
                 if let Self::BitcoinWallet(bitcoin_wallet::Page {
@@ -282,7 +282,7 @@ impl Route {
                                     MaybeLoadingFederationConfig::Loading,
                             });
 
-                        Command::perform(
+                        Task::perform(
                             async move {
                                 match fedimint_api_client::download_from_invite_code(&invite_code).await {
                                     Ok(config) => {
@@ -302,10 +302,10 @@ impl Route {
                     } else {
                         *parsed_federation_invite_code_state_or = None;
 
-                        Command::none()
+                        Task::none()
                     }
                 } else {
-                    Command::none()
+                    Task::none()
                 }
             }
             KeystacheMessage::LoadedFederationConfigFromInviteCode {
@@ -328,7 +328,7 @@ impl Route {
                     }
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::FailedToLoadFederationConfigFromInviteCode { config_invite_code } => {
                 if let Self::BitcoinWallet(bitcoin_wallet::Page {
@@ -352,19 +352,19 @@ impl Route {
                     }
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::JoinFedimintFederation(_invite_code) => {
                 // TODO: Implement this.
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::IncomingNip46Request(data) => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     connected_state.in_flight_nip46_requests.push_back(data);
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::ApproveFirstIncomingNip46Request => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
@@ -374,7 +374,7 @@ impl Route {
                     }
                 }
 
-                Command::none()
+                Task::none()
             }
             KeystacheMessage::RejectFirstIncomingNip46Request => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
@@ -384,7 +384,7 @@ impl Route {
                     }
                 }
 
-                Command::none()
+                Task::none()
             }
         }
     }
