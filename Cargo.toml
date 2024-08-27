@@ -20,7 +20,7 @@ diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
 directories = "5.0.1"
 fedimint-api-client = "0.4.0"
 fedimint-core = "0.4.0"
-iced = { git = "https://github.com/iced-rs/iced", rev = "19db068", features = [
+iced = { git = "https://github.com/iced-rs/iced", rev = "e50aa03", features = [
     "advanced",
     "svg",
     "tokio",

@@ -19,7 +19,8 @@ use fedimint_core::invite_code::InviteCode;
 use iced::futures::{SinkExt, StreamExt};
 use iced::widget::{column, container, row, scrollable, Theme};
 use iced::window::settings::PlatformSpecific;
-use iced::{Element, Length, Pixels, Settings, Size, Task};
+use iced::window::Settings;
+use iced::{Element, Length, Size, Task};
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
 use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::PublicKey;
@@ -29,9 +30,10 @@ use ui_components::sidebar;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    let settings = Settings {
-        id: None,
-        window: iced::window::Settings {
+    iced::application("Keystache", Keystache::update, Keystache::view)
+        .subscription(Keystache::subscription)
+        .theme(|_| Theme::Dark)
+        .window(Settings {
             size: iced::Size {
                 width: 800.0,
                 height: 600.0,
@@ -50,18 +52,7 @@ fn main() -> iced::Result {
             icon: None,                                     // TODO: Set icon.
             platform_specific: PlatformSpecific::default(), // TODO: Set platform specific settings for each platform.
             exit_on_close_request: true,
-        },
-        flags: (),
-        fonts: Vec::new(),
-        default_font: iced::Font::default(),
-        default_text_size: Pixels(16.0),
-        antialiasing: false,
-    };
-
-    iced::program("Keystache", Keystache::update, Keystache::view)
-        .settings(settings)
-        .subscription(Keystache::subscription)
-        .theme(|_| Theme::Dark)
+        })
         .run()
 }
 
