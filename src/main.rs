@@ -34,13 +34,13 @@ fn main() -> iced::Result {
         id: None,
         window: iced::window::Settings {
             size: iced::Size {
-                width: 470.0,
-                height: 620.0,
+                width: 800.0,
+                height: 600.0,
             },
             position: iced::window::Position::Default,
             min_size: Some(Size {
-                width: 800.0,
-                height: 600.0,
+                width: 600.0,
+                height: 400.0,
             }),
             max_size: None,
             visible: true,
