@@ -1,7 +1,5 @@
-use std::{str::FromStr, sync::Arc};
+use std::sync::Arc;
 
-use bitcoin_wallet::{MaybeLoadingFederationConfig, ParsedFederationInviteCodeState};
-use fedimint_core::invite_code::InviteCode;
 use iced::{
     widget::{column, row, text, Column, Text},
     Alignment, Element, Task,
@@ -14,7 +12,7 @@ use crate::{
     ConnectedState, KeystacheMessage,
 };
 
-mod bitcoin_wallet;
+pub mod bitcoin_wallet;
 mod home;
 pub mod nostr_keypairs;
 pub mod nostr_relays;
@@ -187,6 +185,14 @@ impl Route {
                     Task::none()
                 }
             }
+            KeystacheMessage::BitcoinWalletPage(bitcoin_wallet_message) => {
+                if let Self::BitcoinWallet(bitcoin_wallet_page) = self {
+                    bitcoin_wallet_page.update(bitcoin_wallet_message)
+                } else {
+                    // TODO: Log a warning that the bitcoin wallet page is not active.
+                    Task::none()
+                }
+            }
             KeystacheMessage::DbDeleteAllData => {
                 if let Self::Unlock(unlock::Page {
                     db_already_exists, ..
@@ -195,100 +201,6 @@ impl Route {
                     Database::delete();
                     *db_already_exists = false;
                 }
-
-                Task::none()
-            }
-            KeystacheMessage::JoinFederationInviteCodeInputChanged(new_federation_invite_code) => {
-                if let Self::BitcoinWallet(bitcoin_wallet::Page {
-                    federation_invite_code,
-                    parsed_federation_invite_code_state_or,
-                    ..
-                }) = self
-                {
-                    *federation_invite_code = new_federation_invite_code;
-
-                    if let Ok(invite_code) = InviteCode::from_str(federation_invite_code) {
-                        *parsed_federation_invite_code_state_or =
-                            Some(ParsedFederationInviteCodeState {
-                                invite_code: invite_code.clone(),
-                                maybe_loading_federation_config:
-                                    MaybeLoadingFederationConfig::Loading,
-                            });
-
-                        Task::perform(
-                            async move {
-                                match fedimint_api_client::download_from_invite_code(&invite_code).await {
-                                    Ok(config) => {
-                                        KeystacheMessage::LoadedFederationConfigFromInviteCode {
-                                            config_invite_code:   invite_code,
-                                            config,
-                                        }
-                                    }
-                                    // TODO: Include error in message and display it in the UI.
-                                    Err(_err) => {
-                                        KeystacheMessage::FailedToLoadFederationConfigFromInviteCode { config_invite_code: invite_code }
-                                    }
-                                }
-                            },
-                            |msg| msg,
-                        )
-                    } else {
-                        *parsed_federation_invite_code_state_or = None;
-
-                        Task::none()
-                    }
-                } else {
-                    Task::none()
-                }
-            }
-            KeystacheMessage::LoadedFederationConfigFromInviteCode {
-                config_invite_code,
-                config,
-            } => {
-                if let Self::BitcoinWallet(bitcoin_wallet::Page {
-                    parsed_federation_invite_code_state_or:
-                        Some(ParsedFederationInviteCodeState {
-                            invite_code,
-                            maybe_loading_federation_config,
-                        }),
-                    ..
-                }) = self
-                {
-                    // If the invite code has changed since the request was made, ignore the response.
-                    if &config_invite_code == invite_code {
-                        *maybe_loading_federation_config =
-                            MaybeLoadingFederationConfig::Loaded(config);
-                    }
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::FailedToLoadFederationConfigFromInviteCode { config_invite_code } => {
-                if let Self::BitcoinWallet(bitcoin_wallet::Page {
-                    parsed_federation_invite_code_state_or:
-                        Some(ParsedFederationInviteCodeState {
-                            invite_code,
-                            maybe_loading_federation_config,
-                        }),
-                    ..
-                }) = self
-                {
-                    // If the invite code has changed since the request was made, ignore the response.
-                    // Also only update the state if the config hasn't already been loaded.
-                    if &config_invite_code == invite_code
-                        && matches!(
-                            maybe_loading_federation_config,
-                            MaybeLoadingFederationConfig::Loading
-                        )
-                    {
-                        *maybe_loading_federation_config = MaybeLoadingFederationConfig::Failed;
-                    }
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::JoinFedimintFederation(_invite_code) => {
-                // TODO: Implement this.
 
                 Task::none()
             }

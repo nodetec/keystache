@@ -1,8 +1,13 @@
+use std::str::FromStr;
+
 use fedimint_core::{
     config::{ClientConfig, META_FEDERATION_NAME_KEY},
     invite_code::InviteCode,
 };
-use iced::widget::{text_input, Column, Text};
+use iced::{
+    widget::{text_input, Column, Text},
+    Task,
+};
 
 use crate::{
     ui_components::{icon_button, PaletteColor, SvgIcon},
@@ -11,6 +16,22 @@ use crate::{
 };
 
 use super::container;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    JoinFederationInviteCodeInputChanged(String),
+    LoadedFederationConfigFromInviteCode {
+        // The invite code that was used to load the federation config.
+        config_invite_code: InviteCode,
+        // The loaded federation config.
+        config: fedimint_core::config::ClientConfig,
+    },
+    FailedToLoadFederationConfigFromInviteCode {
+        // The invite code that was used to attempt to load the federation config.
+        config_invite_code: InviteCode,
+    },
+    JoinFedimintFederation(InviteCode),
+}
 
 #[derive(Clone)]
 pub struct Page {
@@ -33,6 +54,90 @@ pub enum MaybeLoadingFederationConfig {
 }
 
 impl Page {
+    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+        match msg {
+            Message::JoinFederationInviteCodeInputChanged(new_federation_invite_code) => {
+                self.federation_invite_code = new_federation_invite_code;
+
+                if let Ok(invite_code) = InviteCode::from_str(&self.federation_invite_code) {
+                    self.parsed_federation_invite_code_state_or =
+                        Some(ParsedFederationInviteCodeState {
+                            invite_code: invite_code.clone(),
+                            maybe_loading_federation_config: MaybeLoadingFederationConfig::Loading,
+                        });
+
+                    Task::perform(
+                        async move {
+                            match fedimint_api_client::download_from_invite_code(&invite_code).await
+                            {
+                                Ok(config) => KeystacheMessage::BitcoinWalletPage(
+                                    Message::LoadedFederationConfigFromInviteCode {
+                                        config_invite_code: invite_code,
+                                        config,
+                                    },
+                                ),
+                                // TODO: Include error in message and display it in the UI.
+                                Err(_err) => KeystacheMessage::BitcoinWalletPage(
+                                    Message::FailedToLoadFederationConfigFromInviteCode {
+                                        config_invite_code: invite_code,
+                                    },
+                                ),
+                            }
+                        },
+                        |msg| msg,
+                    )
+                } else {
+                    self.parsed_federation_invite_code_state_or = None;
+
+                    Task::none()
+                }
+            }
+            Message::LoadedFederationConfigFromInviteCode {
+                config_invite_code,
+                config,
+            } => {
+                if let Some(ParsedFederationInviteCodeState {
+                    invite_code,
+                    maybe_loading_federation_config,
+                }) = &mut self.parsed_federation_invite_code_state_or
+                {
+                    // If the invite code has changed since the request was made, ignore the response.
+                    if &config_invite_code == invite_code {
+                        *maybe_loading_federation_config =
+                            MaybeLoadingFederationConfig::Loaded(config);
+                    }
+                }
+
+                Task::none()
+            }
+            Message::FailedToLoadFederationConfigFromInviteCode { config_invite_code } => {
+                if let Some(ParsedFederationInviteCodeState {
+                    invite_code,
+                    maybe_loading_federation_config,
+                }) = &mut self.parsed_federation_invite_code_state_or
+                {
+                    // If the invite code has changed since the request was made, ignore the response.
+                    // Also only update the state if the config hasn't already been loaded.
+                    if &config_invite_code == invite_code
+                        && matches!(
+                            maybe_loading_federation_config,
+                            MaybeLoadingFederationConfig::Loading
+                        )
+                    {
+                        *maybe_loading_federation_config = MaybeLoadingFederationConfig::Failed;
+                    }
+                }
+
+                Task::none()
+            }
+            Message::JoinFedimintFederation(_invite_code) => {
+                // TODO: Implement this.
+
+                Task::none()
+            }
+        }
+    }
+
     // TODO: Remove this clippy allow.
     #[allow(clippy::unused_self)]
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
@@ -40,7 +145,11 @@ impl Page {
             .push(Text::new(format!("Balance: {}", format_amount_sats(0))))
             .push(
                 text_input("Federation Invite Code", &self.federation_invite_code)
-                    .on_input(KeystacheMessage::JoinFederationInviteCodeInputChanged)
+                    .on_input(|input| {
+                        KeystacheMessage::BitcoinWalletPage(
+                            Message::JoinFederationInviteCodeInputChanged(input),
+                        )
+                    })
                     .padding(10)
                     .size(30),
             )
@@ -48,9 +157,9 @@ impl Page {
                 icon_button("Join Federation", SvgIcon::Groups, PaletteColor::Primary)
                     .on_press_maybe(self.parsed_federation_invite_code_state_or.as_ref().map(
                         |parsed_federation_invite_code_state| {
-                            KeystacheMessage::JoinFedimintFederation(
+                            KeystacheMessage::BitcoinWalletPage(Message::JoinFedimintFederation(
                                 parsed_federation_invite_code_state.invite_code.clone(),
-                            )
+                            ))
                         },
                     )),
             );
