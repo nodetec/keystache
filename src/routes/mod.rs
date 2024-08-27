@@ -1,5 +1,7 @@
 use std::{collections::VecDeque, str::FromStr, sync::Arc};
 
+use bitcoin_wallet::{MaybeLoadingFederationConfig, ParsedFederationInviteCodeState};
+use fedimint_core::invite_code::InviteCode;
 use iced::{
     widget::{column, row, text, Column, Text},
     Alignment, Command, Element,
@@ -82,6 +84,7 @@ impl Route {
 
     // TODO: Remove this clippy allow.
     #[allow(clippy::too_many_lines)]
+    #[allow(clippy::cognitive_complexity)]
     pub fn update(&mut self, msg: KeystacheMessage) -> Command<KeystacheMessage> {
         match msg {
             KeystacheMessage::Navigate(route_name) => {
@@ -140,6 +143,8 @@ impl Route {
                     RouteName::BitcoinWallet => self.get_connected_state().map(|connected_state| {
                         Self::BitcoinWallet(bitcoin_wallet::Page {
                             connected_state: connected_state.clone(),
+                            federation_invite_code: String::new(),
+                            parsed_federation_invite_code_state_or: None,
                         })
                     }),
                     RouteName::Settings => self.get_connected_state().map(|connected_state| {
@@ -260,6 +265,100 @@ impl Route {
 
                 Command::none()
             }
+            KeystacheMessage::JoinFederationInviteCodeInputChanged(new_federation_invite_code) => {
+                if let Self::BitcoinWallet(bitcoin_wallet::Page {
+                    federation_invite_code,
+                    parsed_federation_invite_code_state_or,
+                    ..
+                }) = self
+                {
+                    *federation_invite_code = new_federation_invite_code;
+
+                    if let Ok(invite_code) = InviteCode::from_str(federation_invite_code) {
+                        *parsed_federation_invite_code_state_or =
+                            Some(ParsedFederationInviteCodeState {
+                                invite_code: invite_code.clone(),
+                                maybe_loading_federation_config:
+                                    MaybeLoadingFederationConfig::Loading,
+                            });
+
+                        Command::perform(
+                            async move {
+                                match fedimint_api_client::download_from_invite_code(&invite_code).await {
+                                    Ok(config) => {
+                                        KeystacheMessage::LoadedFederationConfigFromInviteCode {
+                                            config_invite_code:   invite_code,
+                                            config,
+                                        }
+                                    }
+                                    // TODO: Include error in message and display it in the UI.
+                                    Err(_err) => {
+                                        KeystacheMessage::FailedToLoadFederationConfigFromInviteCode { config_invite_code: invite_code }
+                                    }
+                                }
+                            },
+                            |msg| msg,
+                        )
+                    } else {
+                        *parsed_federation_invite_code_state_or = None;
+
+                        Command::none()
+                    }
+                } else {
+                    Command::none()
+                }
+            }
+            KeystacheMessage::LoadedFederationConfigFromInviteCode {
+                config_invite_code,
+                config,
+            } => {
+                if let Self::BitcoinWallet(bitcoin_wallet::Page {
+                    parsed_federation_invite_code_state_or:
+                        Some(ParsedFederationInviteCodeState {
+                            invite_code,
+                            maybe_loading_federation_config,
+                        }),
+                    ..
+                }) = self
+                {
+                    // If the invite code has changed since the request was made, ignore the response.
+                    if &config_invite_code == invite_code {
+                        *maybe_loading_federation_config =
+                            MaybeLoadingFederationConfig::Loaded(config);
+                    }
+                }
+
+                Command::none()
+            }
+            KeystacheMessage::FailedToLoadFederationConfigFromInviteCode { config_invite_code } => {
+                if let Self::BitcoinWallet(bitcoin_wallet::Page {
+                    parsed_federation_invite_code_state_or:
+                        Some(ParsedFederationInviteCodeState {
+                            invite_code,
+                            maybe_loading_federation_config,
+                        }),
+                    ..
+                }) = self
+                {
+                    // If the invite code has changed since the request was made, ignore the response.
+                    // Also only update the state if the config hasn't already been loaded.
+                    if &config_invite_code == invite_code
+                        && matches!(
+                            maybe_loading_federation_config,
+                            MaybeLoadingFederationConfig::Loading
+                        )
+                    {
+                        *maybe_loading_federation_config = MaybeLoadingFederationConfig::Failed;
+                    }
+                }
+
+                Command::none()
+            }
+            KeystacheMessage::JoinFedimintFederation(_invite_code) => {
+                // TODO: Implement this.
+
+                Command::none()
+            }
             KeystacheMessage::IncomingNip46Request(data) => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     connected_state.in_flight_nip46_requests.push_back(data);
@@ -332,7 +431,9 @@ impl Route {
             Self::NostrRelays(nostr_relays::Page {
                 connected_state, ..
             }) => Some(connected_state),
-            Self::BitcoinWallet(bitcoin_wallet::Page { connected_state }) => Some(connected_state),
+            Self::BitcoinWallet(bitcoin_wallet::Page {
+                connected_state, ..
+            }) => Some(connected_state),
             Self::Settings(settings::Page { connected_state }) => Some(connected_state),
         }
     }
@@ -347,7 +448,9 @@ impl Route {
             Self::NostrRelays(nostr_relays::Page {
                 connected_state, ..
             }) => Some(connected_state),
-            Self::BitcoinWallet(bitcoin_wallet::Page { connected_state }) => Some(connected_state),
+            Self::BitcoinWallet(bitcoin_wallet::Page {
+                connected_state, ..
+            }) => Some(connected_state),
             Self::Settings(settings::Page { connected_state }) => Some(connected_state),
         }
     }

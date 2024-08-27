@@ -18,6 +18,8 @@ chrono = { version = "0.4.34", features = ["alloc"] }
 diesel = { version = "2.2.0", features = ["sqlite", "chrono"] }
 diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
 directories = "5.0.1"
+fedimint-api-client = "0.4.0"
+fedimint-core = "0.4.0"
 iced = { git = "https://github.com/iced-rs/iced", rev = "b30d34f", features = [
     "advanced",
     "svg",

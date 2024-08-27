@@ -15,6 +15,7 @@ use std::sync::Arc;
 
 use db::Database;
 
+use fedimint_core::invite_code::InviteCode;
 use iced::advanced::Application;
 use iced::futures::{SinkExt, StreamExt};
 use iced::widget::{column, container, row, scrollable, Theme};
@@ -160,6 +161,19 @@ enum KeystacheMessage {
     DeleteRelay {
         websocket_url: String,
     },
+
+    JoinFederationInviteCodeInputChanged(String),
+    LoadedFederationConfigFromInviteCode {
+        // The invite code that was used to load the federation config.
+        config_invite_code: InviteCode,
+        // The loaded federation config.
+        config: fedimint_core::config::ClientConfig,
+    },
+    FailedToLoadFederationConfigFromInviteCode {
+        // The invite code that was used to attempt to load the federation config.
+        config_invite_code: InviteCode,
+    },
+    JoinFedimintFederation(InviteCode),
 
     IncomingNip46Request(
         Arc<(
