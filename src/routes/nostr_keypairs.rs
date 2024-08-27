@@ -1,5 +1,14 @@
-use iced::widget::{row, text_input, Column, Text};
-use nostr_sdk::secp256k1::{rand::thread_rng, Keypair};
+use std::str::FromStr;
+
+use iced::{
+    widget::{row, text_input, Column, Text},
+    Task,
+};
+use nostr_sdk::{
+    secp256k1::{rand::thread_rng, Keypair},
+    SecretKey,
+};
+use secp256k1::Secp256k1;
 
 use crate::{
     ui_components::{icon_button, PaletteColor, SvgIcon},
@@ -9,6 +18,13 @@ use crate::{
 
 use super::{container, RouteName};
 
+#[derive(Debug, Clone)]
+pub enum Message {
+    SaveKeypair(Keypair),
+    SaveKeypairNsecInputChanged(String),
+    DeleteKeypair { public_key: String },
+}
+
 #[derive(Clone)]
 pub struct Page {
     pub connected_state: ConnectedState,
@@ -16,6 +32,38 @@ pub struct Page {
 }
 
 impl Page {
+    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+        match msg {
+            Message::SaveKeypair(keypair) => {
+                // TODO: Surface this error to the UI.
+                let _ = self.connected_state.db.save_keypair(&keypair);
+
+                Task::none()
+            }
+            Message::SaveKeypairNsecInputChanged(new_nsec) => {
+                if let Subroute::Add(Add {
+                    nsec, keypair_or, ..
+                }) = &mut self.subroute
+                {
+                    *nsec = new_nsec;
+
+                    // Set `keypair_or` to `Some` if `nsec` is a valid secret key, `None` otherwise.
+                    *keypair_or = SecretKey::from_str(nsec).map_or(None, |secret_key| {
+                        Some(Keypair::from_secret_key(&Secp256k1::new(), &secret_key))
+                    });
+                }
+
+                Task::none()
+            }
+            Message::DeleteKeypair { public_key } => {
+                // TODO: Surface this error to the UI.
+                _ = self.connected_state.db.remove_keypair(&public_key);
+
+                Task::none()
+            }
+        }
+    }
+
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         match &self.subroute {
             Subroute::List(list) => list.view(&self.connected_state),
@@ -64,8 +112,9 @@ impl List {
                 Text::new(truncate_text(&public_key, 12, true))
                     .size(20)
                     .horizontal_alignment(iced::alignment::Horizontal::Center),
-                icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger)
-                    .on_press(KeystacheMessage::DeleteKeypair { public_key }),
+                icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger).on_press(
+                    KeystacheMessage::NostrKeypairsPage(Message::DeleteKeypair { public_key })
+                ),
             ]);
         }
 
@@ -90,13 +139,20 @@ impl Add {
         container("Add Keypair")
             .push(
                 text_input("nSec", &self.nsec)
-                    .on_input(KeystacheMessage::SaveKeypairNsecInputChanged)
+                    .on_input(|input| {
+                        KeystacheMessage::NostrKeypairsPage(Message::SaveKeypairNsecInputChanged(
+                            input,
+                        ))
+                    })
                     .padding(10)
                     .size(30),
             )
             .push(
-                icon_button("Save", SvgIcon::Save, PaletteColor::Primary)
-                    .on_press_maybe(self.keypair_or.map(KeystacheMessage::SaveKeypair)),
+                icon_button("Save", SvgIcon::Save, PaletteColor::Primary).on_press_maybe(
+                    self.keypair_or.map(|keypair| {
+                        KeystacheMessage::NostrKeypairsPage(Message::SaveKeypair(keypair))
+                    }),
+                ),
             )
             .push(
                 icon_button(
@@ -104,9 +160,9 @@ impl Add {
                     SvgIcon::Casino,
                     PaletteColor::Primary,
                 )
-                .on_press(KeystacheMessage::SaveKeypair(Keypair::new_global(
-                    &mut thread_rng(),
-                ))),
+                .on_press(KeystacheMessage::NostrKeypairsPage(
+                    Message::SaveKeypair(Keypair::new_global(&mut thread_rng())),
+                )),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(

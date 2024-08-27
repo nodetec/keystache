@@ -23,7 +23,6 @@ use iced::window::settings::PlatformSpecific;
 use iced::window::Settings;
 use iced::{Element, Length, Size, Task};
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
-use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::PublicKey;
 use routes::{Route, RouteName};
 use ui_components::sidebar;
@@ -130,14 +129,9 @@ enum KeystacheMessage {
     NavigateHomeAndSetConnectedState(ConnectedState),
 
     UnlockPage(routes::unlock::Message),
+    NostrKeypairsPage(routes::nostr_keypairs::Message),
 
     DbDeleteAllData,
-
-    SaveKeypair(Keypair),
-    SaveKeypairNsecInputChanged(String),
-    DeleteKeypair {
-        public_key: String,
-    },
 
     SaveRelay {
         websocket_url: String,

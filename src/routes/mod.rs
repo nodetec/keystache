@@ -7,10 +7,6 @@ use iced::{
     Alignment, Element, Task,
 };
 use nip_55::nip_46::Nip46RequestApproval;
-use nostr_sdk::{
-    secp256k1::{Keypair, Secp256k1},
-    SecretKey,
-};
 
 use crate::{
     db::Database,
@@ -175,6 +171,14 @@ impl Route {
                     Task::none()
                 }
             }
+            KeystacheMessage::NostrKeypairsPage(nostr_keypairs_message) => {
+                if let Self::NostrKeypairs(nostr_keypairs_page) = self {
+                    nostr_keypairs_page.update(nostr_keypairs_message)
+                } else {
+                    // TODO: Log a warning that the keypairs page is not active.
+                    Task::none()
+                }
+            }
             KeystacheMessage::DbDeleteAllData => {
                 if let Self::Unlock(unlock::Page {
                     db_already_exists, ..
@@ -182,41 +186,6 @@ impl Route {
                 {
                     Database::delete();
                     *db_already_exists = false;
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::SaveKeypair(keypair) => {
-                if let Some(connected_state) = self.get_connected_state_mut() {
-                    // TODO: Surface this error to the UI.
-                    let _ = connected_state.db.save_keypair(&keypair);
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::SaveKeypairNsecInputChanged(new_nsec) => {
-                if let Self::NostrKeypairs(nostr_keypairs::Page {
-                    subroute:
-                        nostr_keypairs::Subroute::Add(nostr_keypairs::Add {
-                            nsec, keypair_or, ..
-                        }),
-                    ..
-                }) = self
-                {
-                    *nsec = new_nsec;
-
-                    // Set `keypair_or` to `Some` if `nsec` is a valid secret key, `None` otherwise.
-                    *keypair_or = SecretKey::from_str(nsec).map_or(None, |secret_key| {
-                        Some(Keypair::from_secret_key(&Secp256k1::new(), &secret_key))
-                    });
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::DeleteKeypair { public_key } => {
-                if let Some(connected_state) = self.get_connected_state_mut() {
-                    // TODO: Surface this error to the UI.
-                    _ = connected_state.db.remove_keypair(&public_key);
                 }
 
                 Task::none()
