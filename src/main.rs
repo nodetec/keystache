@@ -11,6 +11,7 @@ mod ui_components;
 mod util;
 
 use std::collections::VecDeque;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 use db::Database;
@@ -126,9 +127,10 @@ impl Keystache {
 #[derive(Debug, Clone)]
 enum KeystacheMessage {
     Navigate(RouteName),
-    UnlockPasswordInputChanged(String),
-    UnlockToggleSecureInput,
-    UnlockPasswordSubmitted,
+    NavigateHomeAndSetConnectedState(ConnectedState),
+
+    UnlockPage(routes::unlock::Message),
+
     DbDeleteAllData,
 
     SaveKeypair(Keypair),
@@ -180,4 +182,11 @@ struct ConnectedState {
             iced::futures::channel::oneshot::Sender<Nip46RequestApproval>,
         )>,
     >,
+}
+
+// TODO: Clean up this implementation.
+impl Debug for ConnectedState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ConnectedState")
+    }
 }

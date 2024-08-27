@@ -1,4 +1,4 @@
-use std::{collections::VecDeque, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 
 use bitcoin_wallet::{MaybeLoadingFederationConfig, ParsedFederationInviteCodeState};
 use fedimint_core::invite_code::InviteCode;
@@ -23,7 +23,7 @@ mod home;
 pub mod nostr_keypairs;
 pub mod nostr_relays;
 mod settings;
-mod unlock;
+pub mod unlock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RouteName {
@@ -162,35 +162,18 @@ impl Route {
 
                 Task::none()
             }
-            KeystacheMessage::UnlockPasswordInputChanged(new_password) => {
-                if let Self::Unlock(unlock::Page { password, .. }) = self {
-                    *password = new_password;
-                }
+            KeystacheMessage::NavigateHomeAndSetConnectedState(connected_state) => {
+                *self = Self::Home(home::Page { connected_state });
 
                 Task::none()
             }
-            KeystacheMessage::UnlockToggleSecureInput => {
-                if let Self::Unlock(unlock::Page { is_secure, .. }) = self {
-                    *is_secure = !*is_secure;
+            KeystacheMessage::UnlockPage(unlock_message) => {
+                if let Self::Unlock(unlock_page) = self {
+                    unlock_page.update(unlock_message)
+                } else {
+                    // TODO: Log a warning that the unlock page is not active.
+                    Task::none()
                 }
-
-                Task::none()
-            }
-            KeystacheMessage::UnlockPasswordSubmitted => {
-                if let Self::Unlock(unlock::Page { password, .. }) = self {
-                    if let Ok(db) = Database::open_or_create_in_app_data_dir(password) {
-                        let db = Arc::new(db);
-
-                        *self = Self::Home(home::Page {
-                            connected_state: ConnectedState {
-                                db,
-                                in_flight_nip46_requests: VecDeque::new(),
-                            },
-                        });
-                    }
-                }
-
-                Task::none()
             }
             KeystacheMessage::DbDeleteAllData => {
                 if let Self::Unlock(unlock::Page {
