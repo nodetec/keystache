@@ -16,11 +16,10 @@ use std::sync::Arc;
 use db::Database;
 
 use fedimint_core::invite_code::InviteCode;
-use iced::advanced::Application;
 use iced::futures::{SinkExt, StreamExt};
 use iced::widget::{column, container, row, scrollable, Theme};
 use iced::window::settings::PlatformSpecific;
-use iced::{Element, Length, Pixels, Renderer, Settings, Size, Task};
+use iced::{Element, Length, Pixels, Settings, Size, Task};
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
 use nostr_sdk::secp256k1::Keypair;
 use nostr_sdk::PublicKey;
@@ -30,7 +29,7 @@ use ui_components::sidebar;
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
 
-    Keystache::run(Settings {
+    let settings = Settings {
         id: None,
         window: iced::window::Settings {
             size: iced::Size {
@@ -57,33 +56,28 @@ fn main() -> iced::Result {
         default_font: iced::Font::default(),
         default_text_size: Pixels(16.0),
         antialiasing: false,
-    })
+    };
+
+    iced::program("Keystache", Keystache::update, Keystache::view)
+        .settings(settings)
+        .subscription(Keystache::subscription)
+        .theme(|_| Theme::Dark)
+        .run()
 }
 
 struct Keystache {
     page: Route,
 }
 
-impl Application for Keystache {
-    type Executor = iced::executor::Default;
-    type Message = KeystacheMessage;
-    type Theme = Theme;
-    type Flags = ();
-    type Renderer = Renderer;
-
-    fn new(_flags: Self::Flags) -> (Self, Task<KeystacheMessage>) {
-        (
-            Self {
-                page: Route::new_locked(),
-            },
-            Task::none(),
-        )
+impl Default for Keystache {
+    fn default() -> Self {
+        Self {
+            page: Route::new_locked(),
+        }
     }
+}
 
-    fn title(&self) -> String {
-        "Keystache".to_string()
-    }
-
+impl Keystache {
     fn update(&mut self, event: KeystacheMessage) -> Task<KeystacheMessage> {
         self.page.update(event)
     }
@@ -102,7 +96,7 @@ impl Application for Keystache {
         container(content).center_y(Length::Fill).into()
     }
 
-    fn subscription(&self) -> iced::Subscription<Self::Message> {
+    fn subscription(&self) -> iced::Subscription<KeystacheMessage> {
         let Some(connected_state) = self.page.get_connected_state() else {
             return iced::Subscription::none();
         };
