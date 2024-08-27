@@ -130,16 +130,9 @@ enum KeystacheMessage {
 
     UnlockPage(routes::unlock::Message),
     NostrKeypairsPage(routes::nostr_keypairs::Message),
+    NostrRelaysPage(routes::nostr_relays::Message),
 
     DbDeleteAllData,
-
-    SaveRelay {
-        websocket_url: String,
-    },
-    SaveRelayWebsocketUrlInputChanged(String),
-    DeleteRelay {
-        websocket_url: String,
-    },
 
     JoinFederationInviteCodeInputChanged(String),
     LoadedFederationConfigFromInviteCode {

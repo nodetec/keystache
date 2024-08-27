@@ -179,6 +179,14 @@ impl Route {
                     Task::none()
                 }
             }
+            KeystacheMessage::NostrRelaysPage(nostr_relays_message) => {
+                if let Self::NostrRelays(nostr_relays_page) = self {
+                    nostr_relays_page.update(nostr_relays_message)
+                } else {
+                    // TODO: Log a warning that the relays page is not active.
+                    Task::none()
+                }
+            }
             KeystacheMessage::DbDeleteAllData => {
                 if let Self::Unlock(unlock::Page {
                     db_already_exists, ..
@@ -186,33 +194,6 @@ impl Route {
                 {
                     Database::delete();
                     *db_already_exists = false;
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::SaveRelay { websocket_url } => {
-                if let Some(connected_state) = self.get_connected_state_mut() {
-                    // TODO: Surface this error to the UI.
-                    let _ = connected_state.db.save_relay(websocket_url);
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::SaveRelayWebsocketUrlInputChanged(new_websocket_url) => {
-                if let Self::NostrRelays(nostr_relays::Page {
-                    subroute: nostr_relays::Subroute::Add(nostr_relays::Add { websocket_url }),
-                    ..
-                }) = self
-                {
-                    *websocket_url = new_websocket_url;
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::DeleteRelay { websocket_url } => {
-                if let Some(connected_state) = self.get_connected_state_mut() {
-                    // TODO: Surface this error to the UI.
-                    _ = connected_state.db.remove_relay(&websocket_url);
                 }
 
                 Task::none()

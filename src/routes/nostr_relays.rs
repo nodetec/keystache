@@ -1,4 +1,7 @@
-use iced::widget::{row, text_input, Column, Text};
+use iced::{
+    widget::{row, text_input, Column, Text},
+    Task,
+};
 
 use crate::{
     ui_components::{icon_button, PaletteColor, SvgIcon},
@@ -8,6 +11,13 @@ use crate::{
 
 use super::{container, RouteName};
 
+#[derive(Debug, Clone)]
+pub enum Message {
+    SaveRelay { websocket_url: String },
+    SaveRelayWebsocketUrlInputChanged(String),
+    DeleteRelay { websocket_url: String },
+}
+
 #[derive(Clone)]
 pub struct Page {
     pub connected_state: ConnectedState,
@@ -15,6 +25,30 @@ pub struct Page {
 }
 
 impl Page {
+    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+        match msg {
+            Message::SaveRelay { websocket_url } => {
+                // TODO: Surface this error to the UI.
+                let _ = self.connected_state.db.save_relay(websocket_url);
+
+                Task::none()
+            }
+            Message::SaveRelayWebsocketUrlInputChanged(new_websocket_url) => {
+                if let Subroute::Add(Add { websocket_url }) = &mut self.subroute {
+                    *websocket_url = new_websocket_url;
+                }
+
+                Task::none()
+            }
+            Message::DeleteRelay { websocket_url } => {
+                // TODO: Surface this error to the UI.
+                _ = self.connected_state.db.remove_relay(&websocket_url);
+
+                Task::none()
+            }
+        }
+    }
+
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         match &self.subroute {
             Subroute::List(list) => list.view(&self.connected_state),
@@ -64,9 +98,9 @@ impl List {
                     .size(20)
                     .horizontal_alignment(iced::alignment::Horizontal::Center),
                 icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger).on_press(
-                    KeystacheMessage::DeleteRelay {
+                    KeystacheMessage::NostrRelaysPage(Message::DeleteRelay {
                         websocket_url: relay.websocket_url
-                    }
+                    })
                 ),
             ]);
         }
@@ -91,15 +125,19 @@ impl Add {
         container("Add Relay")
             .push(
                 text_input("Websocket URL", &self.websocket_url)
-                    .on_input(KeystacheMessage::SaveRelayWebsocketUrlInputChanged)
+                    .on_input(|input| {
+                        KeystacheMessage::NostrRelaysPage(
+                            Message::SaveRelayWebsocketUrlInputChanged(input),
+                        )
+                    })
                     .padding(10)
                     .size(30),
             )
             .push(
                 icon_button("Save", SvgIcon::Save, PaletteColor::Primary).on_press(
-                    KeystacheMessage::SaveRelay {
+                    KeystacheMessage::NostrRelaysPage(Message::SaveRelay {
                         websocket_url: self.websocket_url.clone(),
-                    },
+                    }),
                 ),
             )
             .push(
