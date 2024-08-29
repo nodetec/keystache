@@ -1,7 +1,7 @@
-use std::str::FromStr;
+use std::{collections::BTreeMap, str::FromStr};
 
 use fedimint_core::{
-    config::{ClientConfig, META_FEDERATION_NAME_KEY},
+    config::{ClientConfig, FederationId, META_FEDERATION_NAME_KEY},
     invite_code::InviteCode,
 };
 use iced::{
@@ -10,16 +10,18 @@ use iced::{
 };
 
 use crate::{
+    fedimint::FederationView,
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::{format_amount_sats, truncate_text},
     ConnectedState, KeystacheMessage,
 };
 
-use super::container;
+use super::{container, Loadable};
 
 #[derive(Debug, Clone)]
 pub enum Message {
     JoinFederationInviteCodeInputChanged(String),
+
     LoadedFederationConfigFromInviteCode {
         // The invite code that was used to load the federation config.
         config_invite_code: InviteCode,
@@ -30,7 +32,14 @@ pub enum Message {
         // The invite code that was used to attempt to load the federation config.
         config_invite_code: InviteCode,
     },
+
     JoinFedimintFederation(InviteCode),
+    ConnectedToFederation,
+
+    LoadFederationConfigViews,
+    LoadedFederationConfigViews {
+        views: BTreeMap<FederationId, FederationView>,
+    },
 }
 
 #[derive(Clone)]
@@ -38,19 +47,13 @@ pub struct Page {
     pub connected_state: ConnectedState,
     pub federation_invite_code: String,
     pub parsed_federation_invite_code_state_or: Option<ParsedFederationInviteCodeState>,
+    pub loadable_federation_views: Loadable<BTreeMap<FederationId, FederationView>>,
 }
 
 #[derive(Clone)]
 pub struct ParsedFederationInviteCodeState {
     pub invite_code: InviteCode,
-    pub maybe_loading_federation_config: MaybeLoadingFederationConfig,
-}
-
-#[derive(Clone)]
-pub enum MaybeLoadingFederationConfig {
-    Loading,
-    Loaded(ClientConfig),
-    Failed,
+    pub loadable_federation_config: Loadable<ClientConfig>,
 }
 
 impl Page {
@@ -63,7 +66,7 @@ impl Page {
                     self.parsed_federation_invite_code_state_or =
                         Some(ParsedFederationInviteCodeState {
                             invite_code: invite_code.clone(),
-                            maybe_loading_federation_config: MaybeLoadingFederationConfig::Loading,
+                            loadable_federation_config: Loadable::Loading,
                         });
 
                     Task::perform(
@@ -98,13 +101,12 @@ impl Page {
             } => {
                 if let Some(ParsedFederationInviteCodeState {
                     invite_code,
-                    maybe_loading_federation_config,
+                    loadable_federation_config: maybe_loading_federation_config,
                 }) = &mut self.parsed_federation_invite_code_state_or
                 {
                     // If the invite code has changed since the request was made, ignore the response.
                     if &config_invite_code == invite_code {
-                        *maybe_loading_federation_config =
-                            MaybeLoadingFederationConfig::Loaded(config);
+                        *maybe_loading_federation_config = Loadable::Loaded(config);
                     }
                 }
 
@@ -113,25 +115,46 @@ impl Page {
             Message::FailedToLoadFederationConfigFromInviteCode { config_invite_code } => {
                 if let Some(ParsedFederationInviteCodeState {
                     invite_code,
-                    maybe_loading_federation_config,
+                    loadable_federation_config: maybe_loading_federation_config,
                 }) = &mut self.parsed_federation_invite_code_state_or
                 {
                     // If the invite code has changed since the request was made, ignore the response.
                     // Also only update the state if the config hasn't already been loaded.
                     if &config_invite_code == invite_code
-                        && matches!(
-                            maybe_loading_federation_config,
-                            MaybeLoadingFederationConfig::Loading
-                        )
+                        && matches!(maybe_loading_federation_config, Loadable::Loading)
                     {
-                        *maybe_loading_federation_config = MaybeLoadingFederationConfig::Failed;
+                        *maybe_loading_federation_config = Loadable::Failed;
                     }
                 }
 
                 Task::none()
             }
-            Message::JoinFedimintFederation(_invite_code) => {
-                // TODO: Implement this.
+            Message::JoinFedimintFederation(invite_code) => {
+                let wallet = self.connected_state.wallet.clone();
+
+                Task::future(async move {
+                    wallet.join_federation(invite_code).await.unwrap();
+                    KeystacheMessage::BitcoinWalletPage(Message::ConnectedToFederation)
+                })
+            }
+            Message::ConnectedToFederation => {
+                // TODO: Do something here, or remove `ConnectedToFederation` message variant.
+
+                Task::none()
+            }
+            Message::LoadFederationConfigViews => {
+                let wallet = self.connected_state.wallet.clone();
+
+                Task::future(async move {
+                    let views = wallet.get_current_state().await;
+
+                    KeystacheMessage::BitcoinWalletPage(Message::LoadedFederationConfigViews {
+                        views,
+                    })
+                })
+            }
+            Message::LoadedFederationConfigViews { views } => {
+                self.loadable_federation_views = Loadable::Loaded(views);
 
                 Task::none()
             }
@@ -139,10 +162,42 @@ impl Page {
     }
 
     // TODO: Remove this clippy allow.
-    #[allow(clippy::unused_self)]
+    #[allow(clippy::too_many_lines)]
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
-        let mut container = container("Wallet")
-            .push(Text::new(format!("Balance: {}", format_amount_sats(0))))
+        let mut container = container("Wallet");
+
+        match &self.loadable_federation_views {
+            Loadable::Loading => {
+                container = container.push(Text::new("Loading federation config views..."));
+            }
+            Loadable::Loaded(views) => {
+                container =
+                    container.push(Column::new().push(Text::new("Federation Config Views")));
+
+                for (federation_id, view) in views {
+                    let mut column = Column::new()
+                        .push(Text::new(federation_id.to_string()))
+                        .push(Text::new(
+                            view.name_or
+                                .clone()
+                                .unwrap_or_else(|| "Unnamed Federation".to_string()),
+                        ))
+                        .push(Text::new(format_amount_sats(view.balance.msats / 1000)))
+                        .push(Text::new("Gateways").size(25));
+
+                    for gateway in &view.gateways {
+                        column = column.push(Text::new(gateway.info.gateway_id.to_string()));
+                    }
+
+                    container = container.push(column);
+                }
+            }
+            Loadable::Failed => {
+                container = container.push(Text::new("Failed to load federation config views."));
+            }
+        }
+
+        container = container
             .push(
                 text_input("Federation Invite Code", &self.federation_invite_code)
                     .on_input(|input| {
@@ -178,11 +233,11 @@ impl Page {
                     true,
                 )));
 
-            match &parsed_federation_invite_code_state.maybe_loading_federation_config {
-                MaybeLoadingFederationConfig::Loading => {
+            match &parsed_federation_invite_code_state.loadable_federation_config {
+                Loadable::Loading => {
                     container = container.push(Text::new("Loading..."));
                 }
-                MaybeLoadingFederationConfig::Loaded(client_config) => {
+                Loadable::Loaded(client_config) => {
                     container = container
                         .push(Text::new("Federation Name").size(25))
                         .push(Text::new(
@@ -207,7 +262,7 @@ impl Page {
                             .push(Text::new(format!("{} ({})", peer_url.name, peer_url.url)));
                     }
                 }
-                MaybeLoadingFederationConfig::Failed => {
+                Loadable::Failed => {
                     container = container.push(Text::new("Failed to load client config"));
                 }
             }

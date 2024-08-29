@@ -1,14 +1,16 @@
 use std::{collections::VecDeque, sync::Arc};
 
+use directories::ProjectDirs;
 use iced::{
     widget::{checkbox, row, text_input, Column, Space},
     Pixels, Task,
 };
+use nostr_sdk::bitcoin::{bip32::Xpriv, Network};
 
 use crate::{
     db::Database,
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, KeystacheMessage,
+    ConnectedState, KeystacheMessage, Wallet,
 };
 
 use super::container;
@@ -43,9 +45,34 @@ impl Page {
             Message::PasswordSubmitted => Database::open_or_create_in_app_data_dir(&self.password)
                 .map_or(Task::none(), |db| {
                     let db = Arc::new(db);
+
+                    // TODO: Handle this unwrap. We should initialize
+                    // project directories elsewhere and pass them in.
+                    let project_dirs = ProjectDirs::from("co", "nodetec", "keystache")
+                        .ok_or_else(|| {
+                            anyhow::anyhow!("Could not determine Keystache project directories.")
+                        })
+                        .unwrap();
+
+                    // TODO: CRITICAL: Remove this hardcoded key.
+                    // TODO: Retrieve network from elsewhere rather than hardcoding.
+                    let wallet = Arc::new(Wallet::new(
+                        Xpriv::new_master(Network::Bitcoin, &[1, 2, 3, 4, 5, 6, 7, 8]).unwrap(),
+                        Network::Bitcoin,
+                        &project_dirs,
+                    ));
+
+                    // TODO: We should call `Task::chain()` and trigger a message rather than
+                    // spawning a new task, since its completion doesn't trigger any UI event.
+                    let wallet_clone = wallet.clone();
+                    tokio::spawn(async move {
+                        wallet_clone.connect_to_joined_federations().await.unwrap();
+                    });
+
                     Task::done(KeystacheMessage::NavigateHomeAndSetConnectedState(
                         ConnectedState {
                             db,
+                            wallet,
                             in_flight_nip46_requests: VecDeque::new(),
                         },
                     ))

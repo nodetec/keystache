@@ -82,6 +82,8 @@ impl Route {
     pub fn update(&mut self, msg: KeystacheMessage) -> Task<KeystacheMessage> {
         match msg {
             KeystacheMessage::Navigate(route_name) => {
+                let mut task = Task::none();
+
                 let new_self_or = match route_name {
                     RouteName::Unlock => Some(Self::new_locked()),
                     RouteName::Home => self.get_connected_state().map(|connected_state| {
@@ -134,13 +136,23 @@ impl Route {
                                 }
                             })
                     }
-                    RouteName::BitcoinWallet => self.get_connected_state().map(|connected_state| {
-                        Self::BitcoinWallet(bitcoin_wallet::Page {
-                            connected_state: connected_state.clone(),
-                            federation_invite_code: String::new(),
-                            parsed_federation_invite_code_state_or: None,
-                        })
-                    }),
+                    // Since we're mutating `task`, we can't use a lambda here.
+                    #[allow(clippy::option_if_let_else)]
+                    RouteName::BitcoinWallet => match self.get_connected_state() {
+                        Some(connected_state) => {
+                            task = task.chain(Task::done(KeystacheMessage::BitcoinWalletPage(
+                                bitcoin_wallet::Message::LoadFederationConfigViews,
+                            )));
+
+                            Some(Self::BitcoinWallet(bitcoin_wallet::Page {
+                                connected_state: connected_state.clone(),
+                                federation_invite_code: String::new(),
+                                parsed_federation_invite_code_state_or: None,
+                                loadable_federation_views: Loadable::Loading,
+                            }))
+                        }
+                        None => None,
+                    },
                     RouteName::Settings => self.get_connected_state().map(|connected_state| {
                         Self::Settings(settings::Page {
                             connected_state: connected_state.clone(),
@@ -154,7 +166,7 @@ impl Route {
                     // TODO: Log warning that navigation failed.
                 }
 
-                Task::none()
+                task
             }
             KeystacheMessage::NavigateHomeAndSetConnectedState(connected_state) => {
                 *self = Self::Home(home::Page { connected_state });
@@ -299,6 +311,13 @@ impl Route {
             Self::Settings(settings::Page { connected_state }) => Some(connected_state),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum Loadable<T> {
+    Loading,
+    Loaded(T),
+    Failed,
 }
 
 pub fn container<'a>(title: &str) -> Column<'a, KeystacheMessage> {

@@ -6,6 +6,7 @@
 #![allow(clippy::significant_drop_tightening)]
 
 mod db;
+mod fedimint;
 mod routes;
 mod ui_components;
 mod util;
@@ -16,6 +17,7 @@ use std::sync::Arc;
 
 use db::Database;
 
+use fedimint::Wallet;
 use iced::futures::{SinkExt, StreamExt};
 use iced::widget::{column, container, row, scrollable, Theme};
 use iced::window::settings::PlatformSpecific;
@@ -148,6 +150,7 @@ enum KeystacheMessage {
 #[derive(Clone)]
 struct ConnectedState {
     db: Arc<Database>,
+    wallet: Arc<Wallet>,
     #[allow(clippy::type_complexity)]
     in_flight_nip46_requests: VecDeque<
         Arc<(
