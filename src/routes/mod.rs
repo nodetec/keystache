@@ -16,7 +16,7 @@ pub mod bitcoin_wallet;
 mod home;
 pub mod nostr_keypairs;
 pub mod nostr_relays;
-mod settings;
+pub mod settings;
 pub mod unlock;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -26,7 +26,7 @@ pub enum RouteName {
     NostrKeypairs(nostr_keypairs::SubrouteName),
     NostrRelays(nostr_relays::SubrouteName),
     BitcoinWallet,
-    Settings,
+    Settings(settings::SubrouteName),
 }
 
 impl RouteName {
@@ -37,7 +37,7 @@ impl RouteName {
             Self::NostrKeypairs(_) => matches!(other, Self::NostrKeypairs(_)),
             Self::NostrRelays(_) => matches!(other, Self::NostrRelays(_)),
             Self::BitcoinWallet => other == Self::BitcoinWallet,
-            Self::Settings => other == Self::Settings,
+            Self::Settings(_) => matches!(other, Self::Settings(_)),
         }
     }
 }
@@ -72,7 +72,7 @@ impl Route {
                 RouteName::NostrRelays(nostr_relays.subroute.to_name())
             }
             Self::BitcoinWallet(_) => RouteName::BitcoinWallet,
-            Self::Settings(_) => RouteName::Settings,
+            Self::Settings(settings) => RouteName::Settings(settings.subroute.to_name()),
         }
     }
 
@@ -153,11 +153,19 @@ impl Route {
                         }
                         None => None,
                     },
-                    RouteName::Settings => self.get_connected_state().map(|connected_state| {
-                        Self::Settings(settings::Page {
-                            connected_state: connected_state.clone(),
-                        })
-                    }),
+                    RouteName::Settings(subroute_name) => {
+                        self.get_connected_state()
+                            .map(|connected_state| match subroute_name {
+                                settings::SubrouteName::Main => Self::Settings(settings::Page {
+                                    connected_state: connected_state.clone(),
+                                    subroute: settings::Subroute::Main(settings::Main {}),
+                                }),
+                                settings::SubrouteName::About => Self::Settings(settings::Page {
+                                    connected_state: connected_state.clone(),
+                                    subroute: settings::Subroute::About(settings::About {}),
+                                }),
+                            })
+                    }
                 };
 
                 if let Some(new_self_or) = new_self_or {
@@ -202,6 +210,14 @@ impl Route {
                     bitcoin_wallet_page.update(bitcoin_wallet_message)
                 } else {
                     // TODO: Log a warning that the bitcoin wallet page is not active.
+                    Task::none()
+                }
+            }
+            KeystacheMessage::SettingsPage(settings_message) => {
+                if let Self::Settings(settings_page) = self {
+                    settings_page.update(settings_message)
+                } else {
+                    // TODO: Log a warning that the settings page is not active.
                     Task::none()
                 }
             }
@@ -291,7 +307,9 @@ impl Route {
             Self::BitcoinWallet(bitcoin_wallet::Page {
                 connected_state, ..
             }) => Some(connected_state),
-            Self::Settings(settings::Page { connected_state }) => Some(connected_state),
+            Self::Settings(settings::Page {
+                connected_state, ..
+            }) => Some(connected_state),
         }
     }
 
@@ -308,7 +326,9 @@ impl Route {
             Self::BitcoinWallet(bitcoin_wallet::Page {
                 connected_state, ..
             }) => Some(connected_state),
-            Self::Settings(settings::Page { connected_state }) => Some(connected_state),
+            Self::Settings(settings::Page {
+                connected_state, ..
+            }) => Some(connected_state),
         }
     }
 }

@@ -133,6 +133,7 @@ enum KeystacheMessage {
     NostrKeypairsPage(routes::nostr_keypairs::Message),
     NostrRelaysPage(routes::nostr_relays::Message),
     BitcoinWalletPage(routes::bitcoin_wallet::Message),
+    SettingsPage(routes::settings::Message),
 
     DbDeleteAllData,
 
