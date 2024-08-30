@@ -151,6 +151,7 @@ impl Wallet {
         &self,
         federation_id: FederationId,
         amount: Amount,
+        description: String,
     ) -> anyhow::Result<(
         Bolt11Invoice,
         iced::futures::channel::oneshot::Receiver<LightningReceiveCompletion>,
@@ -168,7 +169,7 @@ impl Wallet {
         let (operation_id, invoice, _preimage) = lightning_module
             .create_bolt11_invoice(
                 amount,
-                Bolt11InvoiceDescription::Direct(&Description::new(String::new()).unwrap()),
+                Bolt11InvoiceDescription::Direct(&Description::new(description).unwrap()),
                 None,
                 (),
                 Self::select_gateway(gateways.as_slice()),
