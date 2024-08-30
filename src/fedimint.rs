@@ -10,7 +10,7 @@ use fedimint_client::{
 };
 use fedimint_core::{config::FederationId, db::Database, invite_code::InviteCode, Amount};
 use fedimint_ln_client::{LightningClientModule, LnReceiveState};
-use fedimint_ln_common::LightningGatewayAnnouncement;
+use fedimint_ln_common::{LightningGateway, LightningGatewayAnnouncement};
 use fedimint_rocksdb::RocksDb;
 use iced::futures::{lock::Mutex, StreamExt};
 use lightning_invoice::{Bolt11Invoice, Bolt11InvoiceDescription, Description};
@@ -22,6 +22,7 @@ use nostr_sdk::{
         Network,
     },
 };
+use secp256k1::rand::{seq::SliceRandom, thread_rng};
 
 const FEDIMINT_CLIENTS_DATA_DIR_NAME: &str = "fedimint_clients";
 // TODO: Figure out if we even want this. If we do, it probably shouldn't live here.
@@ -162,13 +163,15 @@ impl Wallet {
 
         let lightning_module = client.get_first_module::<LightningClientModule>();
 
+        let gateways = lightning_module.list_gateways().await;
+
         let (operation_id, invoice, _preimage) = lightning_module
             .create_bolt11_invoice(
                 amount,
                 Bolt11InvoiceDescription::Direct(&Description::new(String::new()).unwrap()),
                 None,
                 (),
-                None,
+                Self::select_gateway(gateways.as_slice()),
             )
             .await?;
 
@@ -258,6 +261,25 @@ impl Wallet {
         };
 
         Ok(client)
+    }
+
+    // TODO: Optimize gateway selection algorithm.
+    fn select_gateway(gateways: &[LightningGatewayAnnouncement]) -> Option<LightningGateway> {
+        let vetted_gateways: Vec<_> = gateways
+            .iter()
+            .filter(|gateway_announcement| gateway_announcement.vetted)
+            .map(|gateway_announcement| &gateway_announcement.info)
+            .collect();
+
+        // If there are vetted gateways, select a random one.
+        if let Some(random_vetted_gateway) = vetted_gateways.choose(&mut thread_rng()) {
+            return Some((*random_vetted_gateway).clone());
+        }
+
+        // If there are no vetted gateways, select a random unvetted gateway.
+        gateways
+            .choose(&mut thread_rng())
+            .map(|gateway_announcement| gateway_announcement.info.clone())
     }
 }
 
