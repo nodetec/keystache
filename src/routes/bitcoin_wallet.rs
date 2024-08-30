@@ -5,13 +5,14 @@ use fedimint_core::{
     invite_code::InviteCode,
 };
 use iced::{
-    widget::{text_input, Column, Text},
-    Task,
+    widget::{container::Style, text_input, Column, Container, Text},
+    Border, Length, Shadow, Task, Theme,
 };
 
 use crate::{
     fedimint::FederationView,
     ui_components::{icon_button, PaletteColor, SvgIcon},
+    util::lighten,
     util::{format_amount_sats, truncate_text},
     ConnectedState, KeystacheMessage,
 };
@@ -168,32 +169,60 @@ impl Page {
 
         match &self.loadable_federation_views {
             Loadable::Loading => {
-                container = container.push(Text::new("Loading federation config views..."));
+                container = container.push(Text::new("Loading federations...").size(25));
             }
             Loadable::Loaded(views) => {
-                container =
-                    container.push(Column::new().push(Text::new("Federation Config Views")));
+                container = container.push(Column::new().push(Text::new("Federations").size(25)));
 
                 for (federation_id, view) in views {
-                    let mut column = Column::new()
-                        .push(Text::new(federation_id.to_string()))
-                        .push(Text::new(
-                            view.name_or
-                                .clone()
-                                .unwrap_or_else(|| "Unnamed Federation".to_string()),
-                        ))
+                    let mut column: Column<_, Theme, _> = Column::new()
+                        .push(
+                            Text::new(
+                                view.name_or
+                                    .clone()
+                                    .unwrap_or_else(|| "Unnamed Federation".to_string()),
+                            )
+                            .size(25),
+                        )
+                        .push(Text::new(format!(
+                            "Federation ID: {}",
+                            truncate_text(&federation_id.to_string(), 23, true)
+                        )))
                         .push(Text::new(format_amount_sats(view.balance.msats / 1000)))
-                        .push(Text::new("Gateways").size(25));
+                        .push(Text::new("Gateways").size(20));
 
                     for gateway in &view.gateways {
-                        column = column.push(Text::new(gateway.info.gateway_id.to_string()));
+                        column = column.push(Text::new(truncate_text(
+                            &gateway.info.gateway_id.to_string(),
+                            23,
+                            true,
+                        )));
                     }
 
-                    container = container.push(column);
+                    container = container.push(
+                        Container::new(column)
+                            .padding(10)
+                            .width(Length::Fill)
+                            .style(|theme| -> Style {
+                                Style {
+                                    text_color: None,
+                                    background: Some(
+                                        lighten(theme.palette().background, 0.05).into(),
+                                    ),
+                                    border: Border {
+                                        color: iced::Color::WHITE,
+                                        width: 0.0,
+                                        radius: (8.0).into(),
+                                    },
+                                    shadow: Shadow::default(),
+                                }
+                            }),
+                    );
                 }
             }
             Loadable::Failed => {
-                container = container.push(Text::new("Failed to load federation config views."));
+                container =
+                    container.push(Text::new("Failed to load federation config views.").size(25));
             }
         }
 
