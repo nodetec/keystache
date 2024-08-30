@@ -6,8 +6,8 @@ use iced::{Alignment, Element, Shadow};
 use crate::routes::{nostr_keypairs, nostr_relays, settings, RouteName};
 use crate::{Keystache, KeystacheMessage};
 
-use super::util::lighten;
 use super::{sidebar_button, SvgIcon};
+use crate::util::lighten;
 
 pub fn sidebar(keystache: &Keystache) -> Element<KeystacheMessage> {
     let sidebar = container(

@@ -8,8 +8,6 @@ pub use icon::*;
 mod sidebar;
 pub use sidebar::*;
 
-mod util;
-
 // TODO: Remove this allow unused.
 #[allow(unused)]
 #[derive(PartialEq, Eq)]

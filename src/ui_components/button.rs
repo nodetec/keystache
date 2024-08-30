@@ -6,12 +6,13 @@ use iced::{
     Border, Color, Length, Shadow, Theme,
 };
 
-use crate::{routes::RouteName, Keystache, KeystacheMessage};
-
-use super::{
+use crate::{
+    routes::RouteName,
     util::{darken, lighten},
-    PaletteColor, SvgIcon,
+    Keystache, KeystacheMessage,
 };
+
+use super::{PaletteColor, SvgIcon};
 
 pub fn icon_button(
     text_str: &str,
