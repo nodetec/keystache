@@ -1,3 +1,4 @@
+use fedimint_core::Amount;
 use iced::Color;
 use palette::{rgb::Rgb, FromColor, Hsl};
 
@@ -33,13 +34,15 @@ fn from_hsl(hsl: Hsl) -> Color {
     Rgb::from_color(hsl).into()
 }
 
-// TODO: This should take a `bitcoin::Amount` instead of a `u64` once we add the `bitcoin` crate as a dependency.
-pub fn format_amount_sats(amount_sats: u64) -> String {
-    if amount_sats == 1 {
+pub fn format_amount(amount: Amount) -> String {
+    let amount_sats = amount.msats / 1000;
+    let sub_sat_msats = amount.msats % 1000;
+
+    if amount_sats == 1 && sub_sat_msats == 0 {
         return "1 sat".to_string();
     }
 
-    let num = amount_sats
+    let comma_formatted_sats = amount_sats
         .to_string()
         .as_bytes()
         .rchunks(3)
@@ -49,7 +52,17 @@ pub fn format_amount_sats(amount_sats: u64) -> String {
         .unwrap()
         .join(",");
 
-    format!("{num} sats")
+    let msats_str = if sub_sat_msats == 0 {
+        String::new()
+    } else {
+        let mut sub_sat_msats_str = format!(".{sub_sat_msats:03}");
+        while sub_sat_msats_str.ends_with('0') {
+            sub_sat_msats_str.pop();
+        }
+        sub_sat_msats_str
+    };
+
+    format!("{comma_formatted_sats}{msats_str} sats")
 }
 
 /// Adds ellipses to a string if it exceeds a certain length, ensuring the total length is at most
@@ -106,26 +119,35 @@ mod tests {
     #[test]
     fn test_format_amount_sats() {
         // 0 sats is plural.
-        assert_eq!(format_amount_sats(0), "0 sats");
+        assert_eq!(format_amount(Amount::from_sats(0)), "0 sats");
 
         // 1 sat is singular.
-        assert_eq!(format_amount_sats(1), "1 sat");
+        assert_eq!(format_amount(Amount::from_sats(1)), "1 sat");
 
         // Digits are ordered correctly.
-        assert_eq!(format_amount_sats(1234), "1,234 sats");
+        assert_eq!(format_amount(Amount::from_sats(1234)), "1,234 sats");
 
         // Commas are placed correctly.
-        assert_eq!(format_amount_sats(10), "10 sats");
-        assert_eq!(format_amount_sats(100), "100 sats");
-        assert_eq!(format_amount_sats(1_000), "1,000 sats");
-        assert_eq!(format_amount_sats(10_000), "10,000 sats");
-        assert_eq!(format_amount_sats(100_000), "100,000 sats");
-        assert_eq!(format_amount_sats(1_000_000), "1,000,000 sats");
-        assert_eq!(format_amount_sats(10_000_000), "10,000,000 sats");
-        assert_eq!(format_amount_sats(100_000_000), "100,000,000 sats");
-        assert_eq!(format_amount_sats(1_000_000_000), "1,000,000,000 sats");
-        assert_eq!(format_amount_sats(10_000_000_000), "10,000,000,000 sats");
-        assert_eq!(format_amount_sats(100_000_000_000), "100,000,000,000 sats");
+        assert_eq!(format_amount(Amount::from_sats(10)), "10 sats");
+        assert_eq!(format_amount(Amount::from_sats(100)), "100 sats");
+        assert_eq!(format_amount(Amount::from_sats(1_000)), "1,000 sats");
+        assert_eq!(format_amount(Amount::from_sats(10_000)), "10,000 sats");
+        assert_eq!(format_amount(Amount::from_sats(100_000)), "100,000 sats");
+        assert_eq!(
+            format_amount(Amount::from_sats(1_000_000)),
+            "1,000,000 sats"
+        );
+
+        // Millisats are displayed as sub-sats, without extra zeros.
+        assert_eq!(format_amount(Amount::from_msats(1)), "0.001 sats");
+        assert_eq!(format_amount(Amount::from_msats(10)), "0.01 sats");
+        assert_eq!(format_amount(Amount::from_msats(100)), "0.1 sats");
+
+        // Millisats are displayed properly with sats
+        assert_eq!(
+            format_amount(Amount::from_msats(123456789)),
+            "123,456.789 sats"
+        );
     }
 
     #[test]

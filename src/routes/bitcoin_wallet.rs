@@ -12,7 +12,7 @@ use iced::{
 use crate::{
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::lighten,
-    util::{format_amount_sats, truncate_text},
+    util::{format_amount, truncate_text},
     ConnectedState, KeystacheMessage,
 };
 
@@ -225,7 +225,7 @@ impl List {
                             "Federation ID: {}",
                             truncate_text(&federation_id.to_string(), 23, true)
                         )))
-                        .push(Text::new(format_amount_sats(view.balance.msats / 1000)))
+                        .push(Text::new(format_amount(view.balance)))
                         .push(Text::new("Gateways").size(20));
 
                     for gateway in &view.gateways {
