@@ -78,6 +78,18 @@ pub enum SubrouteName {
     Add,
 }
 
+impl SubrouteName {
+    pub fn to_default_subroute(&self) -> Subroute {
+        match self {
+            Self::List => Subroute::List(List {}),
+            Self::Add => Subroute::Add(Add {
+                nsec: String::new(),
+                keypair_or: None,
+            }),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum Subroute {
     List(List),

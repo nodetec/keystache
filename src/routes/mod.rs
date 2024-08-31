@@ -90,49 +90,20 @@ impl Route {
                         })
                     }),
                     RouteName::NostrKeypairs(subroute_name) => {
-                        self.get_connected_state()
-                            .map(|connected_state| match subroute_name {
-                                nostr_keypairs::SubrouteName::List => {
-                                    Self::NostrKeypairs(nostr_keypairs::Page {
-                                        connected_state: connected_state.clone(),
-                                        subroute: nostr_keypairs::Subroute::List(
-                                            nostr_keypairs::List {},
-                                        ),
-                                    })
-                                }
-                                nostr_keypairs::SubrouteName::Add => {
-                                    Self::NostrKeypairs(nostr_keypairs::Page {
-                                        connected_state: connected_state.clone(),
-                                        subroute: nostr_keypairs::Subroute::Add(
-                                            nostr_keypairs::Add {
-                                                nsec: String::new(),
-                                                keypair_or: None,
-                                            },
-                                        ),
-                                    })
-                                }
+                        self.get_connected_state().map(|connected_state| {
+                            Self::NostrKeypairs(nostr_keypairs::Page {
+                                connected_state: connected_state.clone(),
+                                subroute: subroute_name.to_default_subroute(),
                             })
+                        })
                     }
                     RouteName::NostrRelays(subroute_name) => {
-                        self.get_connected_state()
-                            .map(|connected_state| match subroute_name {
-                                nostr_relays::SubrouteName::List => {
-                                    Self::NostrRelays(nostr_relays::Page {
-                                        connected_state: connected_state.clone(),
-                                        subroute: nostr_relays::Subroute::List(
-                                            nostr_relays::List {},
-                                        ),
-                                    })
-                                }
-                                nostr_relays::SubrouteName::Add => {
-                                    Self::NostrRelays(nostr_relays::Page {
-                                        connected_state: connected_state.clone(),
-                                        subroute: nostr_relays::Subroute::Add(nostr_relays::Add {
-                                            websocket_url: String::new(),
-                                        }),
-                                    })
-                                }
+                        self.get_connected_state().map(|connected_state| {
+                            Self::NostrRelays(nostr_relays::Page {
+                                connected_state: connected_state.clone(),
+                                subroute: subroute_name.to_default_subroute(),
                             })
+                        })
                     }
                     // Since we're mutating `task`, we can't use a lambda here.
                     #[allow(clippy::option_if_let_else)]
@@ -144,17 +115,12 @@ impl Route {
                         })
                     }),
                     RouteName::Settings(subroute_name) => {
-                        self.get_connected_state()
-                            .map(|connected_state| match subroute_name {
-                                settings::SubrouteName::Main => Self::Settings(settings::Page {
-                                    connected_state: connected_state.clone(),
-                                    subroute: settings::Subroute::Main(settings::Main {}),
-                                }),
-                                settings::SubrouteName::About => Self::Settings(settings::Page {
-                                    connected_state: connected_state.clone(),
-                                    subroute: settings::Subroute::About(settings::About {}),
-                                }),
+                        self.get_connected_state().map(|connected_state| {
+                            Self::Settings(settings::Page {
+                                connected_state: connected_state.clone(),
+                                subroute: subroute_name.to_default_subroute(),
                             })
+                        })
                     }
                 };
 

@@ -38,6 +38,15 @@ pub enum SubrouteName {
     About,
 }
 
+impl SubrouteName {
+    pub fn to_default_subroute(&self) -> Subroute {
+        match self {
+            Self::Main => Subroute::Main(Main {}),
+            Self::About => Subroute::About(About {}),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub enum Subroute {
     Main(Main),
