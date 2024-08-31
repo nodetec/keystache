@@ -3,6 +3,7 @@ use std::str::FromStr;
 use fedimint_core::{
     config::{ClientConfig, META_FEDERATION_NAME_KEY},
     invite_code::InviteCode,
+    Amount,
 };
 use iced::{
     widget::{container::Style, text_input, Column, Container, Text},
@@ -209,7 +210,15 @@ impl List {
                 container = container.push(Text::new("Loading federations...").size(25));
             }
             Loadable::Loaded(views) => {
-                container = container.push(Column::new().push(Text::new("Federations").size(25)));
+                container = container
+                    .push(Text::new("Total Balance").size(25))
+                    .push(Text::new(format_amount(Amount::from_msats(
+                        views
+                            .iter()
+                            .map(|(_federation_id, view)| view.balance.msats)
+                            .sum::<u64>(),
+                    ))))
+                    .push(Text::new("Federations").size(25));
 
                 for (federation_id, view) in views {
                     let mut column: Column<_, Theme, _> = Column::new()
