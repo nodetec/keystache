@@ -42,6 +42,7 @@ pub enum LightningReceiveCompletion {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FederationView {
+    pub federation_id: FederationId,
     pub name_or: Option<String>,
     pub balance: Amount,
     pub gateways: Vec<LightningGatewayAnnouncement>,
@@ -170,6 +171,7 @@ impl Wallet {
             state.insert(
                 *federation_id,
                 FederationView {
+                    federation_id: *federation_id,
                     name_or: client
                         .config()
                         .await
