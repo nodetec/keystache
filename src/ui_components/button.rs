@@ -66,7 +66,7 @@ pub fn sidebar_button<'a>(
     self_route_name: RouteName,
     keystache: &Keystache,
 ) -> Button<'a, KeystacheMessage, Theme> {
-    let is_active = self_route_name.is_same_top_level_route_as(keystache.page.to_name());
+    let is_active = self_route_name.is_same_top_level_route_as(&keystache.page.to_name());
 
     // TODO: Find a way to darken the icon color when the button is disabled.
     let svg = icon.view(24.0, 24.0, Color::WHITE);

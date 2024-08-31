@@ -30,10 +30,10 @@ pub enum RouteName {
 }
 
 impl RouteName {
-    pub fn is_same_top_level_route_as(self, other: Self) -> bool {
+    pub fn is_same_top_level_route_as(self, other: &Self) -> bool {
         match self {
-            Self::Unlock => other == Self::Unlock,
-            Self::Home => other == Self::Home,
+            Self::Unlock => other == &Self::Unlock,
+            Self::Home => other == &Self::Home,
             Self::NostrKeypairs(_) => matches!(other, Self::NostrKeypairs(_)),
             Self::NostrRelays(_) => matches!(other, Self::NostrRelays(_)),
             Self::BitcoinWallet(_) => matches!(other, Self::BitcoinWallet(_)),
