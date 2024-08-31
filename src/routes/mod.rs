@@ -25,7 +25,7 @@ pub enum RouteName {
     Home,
     NostrKeypairs(nostr_keypairs::SubrouteName),
     NostrRelays(nostr_relays::SubrouteName),
-    BitcoinWallet,
+    BitcoinWallet(bitcoin_wallet::SubrouteName),
     Settings(settings::SubrouteName),
 }
 
@@ -36,7 +36,7 @@ impl RouteName {
             Self::Home => other == Self::Home,
             Self::NostrKeypairs(_) => matches!(other, Self::NostrKeypairs(_)),
             Self::NostrRelays(_) => matches!(other, Self::NostrRelays(_)),
-            Self::BitcoinWallet => other == Self::BitcoinWallet,
+            Self::BitcoinWallet(_) => matches!(other, Self::BitcoinWallet(_)),
             Self::Settings(_) => matches!(other, Self::Settings(_)),
         }
     }
@@ -71,7 +71,9 @@ impl Route {
             Self::NostrRelays(nostr_relays) => {
                 RouteName::NostrRelays(nostr_relays.subroute.to_name())
             }
-            Self::BitcoinWallet(_) => RouteName::BitcoinWallet,
+            Self::BitcoinWallet(bitcoin_wallet) => {
+                RouteName::BitcoinWallet(bitcoin_wallet.subroute.to_name())
+            }
             Self::Settings(settings) => RouteName::Settings(settings.subroute.to_name()),
         }
     }
@@ -105,15 +107,14 @@ impl Route {
                             })
                         })
                     }
-                    // Since we're mutating `task`, we can't use a lambda here.
-                    #[allow(clippy::option_if_let_else)]
-                    RouteName::BitcoinWallet => self.get_connected_state().map(|connected_state| {
-                        Self::BitcoinWallet(bitcoin_wallet::Page {
-                            connected_state: connected_state.clone(),
-                            federation_invite_code: String::new(),
-                            parsed_federation_invite_code_state_or: None,
+                    RouteName::BitcoinWallet(subroute_name) => {
+                        self.get_connected_state().map(|connected_state| {
+                            Self::BitcoinWallet(bitcoin_wallet::Page {
+                                connected_state: connected_state.clone(),
+                                subroute: subroute_name.to_default_subroute(),
+                            })
                         })
-                    }),
+                    }
                     RouteName::Settings(subroute_name) => {
                         self.get_connected_state().map(|connected_state| {
                             Self::Settings(settings::Page {

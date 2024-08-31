@@ -16,7 +16,7 @@ use crate::{
     ConnectedState, KeystacheMessage,
 };
 
-use super::{container, Loadable};
+use super::{container, Loadable, RouteName};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -40,24 +40,25 @@ pub enum Message {
 #[derive(Clone)]
 pub struct Page {
     pub connected_state: ConnectedState,
-    pub federation_invite_code: String,
-    pub parsed_federation_invite_code_state_or: Option<ParsedFederationInviteCodeState>,
-}
-
-#[derive(Clone)]
-pub struct ParsedFederationInviteCodeState {
-    pub invite_code: InviteCode,
-    pub loadable_federation_config: Loadable<ClientConfig>,
+    pub subroute: Subroute,
 }
 
 impl Page {
     pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
         match msg {
             Message::JoinFederationInviteCodeInputChanged(new_federation_invite_code) => {
-                self.federation_invite_code = new_federation_invite_code;
+                let Subroute::Add(Add {
+                    federation_invite_code,
+                    parsed_federation_invite_code_state_or,
+                }) = &mut self.subroute
+                else {
+                    return Task::none();
+                };
 
-                if let Ok(invite_code) = InviteCode::from_str(&self.federation_invite_code) {
-                    self.parsed_federation_invite_code_state_or =
+                *federation_invite_code = new_federation_invite_code;
+
+                if let Ok(invite_code) = InviteCode::from_str(federation_invite_code) {
+                    *parsed_federation_invite_code_state_or =
                         Some(ParsedFederationInviteCodeState {
                             invite_code: invite_code.clone(),
                             loadable_federation_config: Loadable::Loading,
@@ -84,7 +85,7 @@ impl Page {
                         |msg| msg,
                     )
                 } else {
-                    self.parsed_federation_invite_code_state_or = None;
+                    *parsed_federation_invite_code_state_or = None;
 
                     Task::none()
                 }
@@ -93,10 +94,18 @@ impl Page {
                 config_invite_code,
                 config,
             } => {
+                let Subroute::Add(Add {
+                    parsed_federation_invite_code_state_or,
+                    ..
+                }) = &mut self.subroute
+                else {
+                    return Task::none();
+                };
+
                 if let Some(ParsedFederationInviteCodeState {
                     invite_code,
                     loadable_federation_config: maybe_loading_federation_config,
-                }) = &mut self.parsed_federation_invite_code_state_or
+                }) = parsed_federation_invite_code_state_or
                 {
                     // If the invite code has changed since the request was made, ignore the response.
                     if &config_invite_code == invite_code {
@@ -107,10 +116,18 @@ impl Page {
                 Task::none()
             }
             Message::FailedToLoadFederationConfigFromInviteCode { config_invite_code } => {
+                let Subroute::Add(Add {
+                    parsed_federation_invite_code_state_or,
+                    ..
+                }) = &mut self.subroute
+                else {
+                    return Task::none();
+                };
+
                 if let Some(ParsedFederationInviteCodeState {
                     invite_code,
                     loadable_federation_config: maybe_loading_federation_config,
-                }) = &mut self.parsed_federation_invite_code_state_or
+                }) = parsed_federation_invite_code_state_or
                 {
                     // If the invite code has changed since the request was made, ignore the response.
                     // Also only update the state if the config hasn't already been loaded.
@@ -139,12 +156,55 @@ impl Page {
         }
     }
 
-    // TODO: Remove this clippy allow.
-    #[allow(clippy::too_many_lines)]
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+        match &self.subroute {
+            Subroute::List(list) => list.view(&self.connected_state),
+            Subroute::Add(add) => add.view(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SubrouteName {
+    List,
+    Add,
+}
+
+impl SubrouteName {
+    pub fn to_default_subroute(&self) -> Subroute {
+        match self {
+            Self::List => Subroute::List(List {}),
+            Self::Add => Subroute::Add(Add {
+                federation_invite_code: String::new(),
+                parsed_federation_invite_code_state_or: None,
+            }),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub enum Subroute {
+    List(List),
+    Add(Add),
+}
+
+impl Subroute {
+    pub fn to_name(&self) -> SubrouteName {
+        match self {
+            Self::List(_) => SubrouteName::List,
+            Self::Add(_) => SubrouteName::Add,
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct List {}
+
+impl List {
+    fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, KeystacheMessage> {
         let mut container = container("Wallet");
 
-        match &self.connected_state.loadable_federation_views {
+        match &connected_state.loadable_federation_views {
             Loadable::Loading => {
                 container = container.push(Text::new("Loading federations...").size(25));
             }
@@ -203,7 +263,31 @@ impl Page {
             }
         }
 
-        container = container
+        container = container.push(
+            icon_button("Join Federation", SvgIcon::Add, PaletteColor::Primary).on_press(
+                KeystacheMessage::Navigate(RouteName::BitcoinWallet(SubrouteName::Add)),
+            ),
+        );
+
+        container
+    }
+}
+
+#[derive(Clone)]
+pub struct Add {
+    pub federation_invite_code: String,
+    pub parsed_federation_invite_code_state_or: Option<ParsedFederationInviteCodeState>,
+}
+
+#[derive(Clone)]
+pub struct ParsedFederationInviteCodeState {
+    pub invite_code: InviteCode,
+    pub loadable_federation_config: Loadable<ClientConfig>,
+}
+
+impl Add {
+    fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+        let mut container = container("Add Keypair")
             .push(
                 text_input("Federation Invite Code", &self.federation_invite_code)
                     .on_input(|input| {
@@ -273,6 +357,12 @@ impl Page {
                 }
             }
         }
+
+        container = container.push(
+            icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
+                KeystacheMessage::Navigate(RouteName::BitcoinWallet(SubrouteName::List)),
+            ),
+        );
 
         container
     }

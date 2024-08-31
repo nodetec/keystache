@@ -3,7 +3,7 @@ use iced::widget::{column, container, vertical_space};
 use iced::Border;
 use iced::{Alignment, Element, Shadow};
 
-use crate::routes::{nostr_keypairs, nostr_relays, settings, RouteName};
+use crate::routes::{bitcoin_wallet, nostr_keypairs, nostr_relays, settings, RouteName};
 use crate::{Keystache, KeystacheMessage};
 
 use super::{sidebar_button, SvgIcon};
@@ -35,10 +35,12 @@ pub fn sidebar(keystache: &Keystache) -> Element<KeystacheMessage> {
             sidebar_button(
                 "Wallet",
                 SvgIcon::CurrencyBitcoin,
-                RouteName::BitcoinWallet,
+                RouteName::BitcoinWallet(bitcoin_wallet::SubrouteName::List),
                 keystache
             )
-            .on_press(KeystacheMessage::Navigate(RouteName::BitcoinWallet)),
+            .on_press(KeystacheMessage::Navigate(RouteName::BitcoinWallet(
+                bitcoin_wallet::SubrouteName::List
+            ))),
             vertical_space(),
             sidebar_button(
                 "Settings",
