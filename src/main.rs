@@ -11,13 +11,14 @@ mod routes;
 mod ui_components;
 mod util;
 
-use std::collections::VecDeque;
+use std::collections::{BTreeMap, VecDeque};
 use std::fmt::Debug;
 use std::sync::Arc;
 
 use db::Database;
 
-use fedimint::Wallet;
+use fedimint::{FederationView, Wallet};
+use fedimint_core::config::FederationId;
 use iced::futures::{SinkExt, StreamExt};
 use iced::widget::{column, container, row, scrollable, Theme};
 use iced::window::settings::PlatformSpecific;
@@ -25,7 +26,7 @@ use iced::window::Settings;
 use iced::{Element, Length, Size, Task};
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
 use nostr_sdk::PublicKey;
-use routes::{Route, RouteName};
+use routes::{Loadable, Route, RouteName};
 use ui_components::sidebar;
 
 fn main() -> iced::Result {
@@ -95,7 +96,26 @@ impl Keystache {
 
         let db_clone = connected_state.db.clone();
 
-        iced::subscription::channel(
+        let wallet = connected_state.wallet.clone();
+
+        let wallet_sub = iced::subscription::channel(
+            std::any::TypeId::of::<Wallet>(),
+            100,
+            |mut output| async move {
+                loop {
+                    let mut wallet_update_stream = wallet.get_update_stream();
+
+                    while let Some(views) = wallet_update_stream.next().await {
+                        output
+                            .send(KeystacheMessage::FederationViewsUpdate { views })
+                            .await
+                            .unwrap();
+                    }
+                }
+            },
+        );
+
+        let nip46_sub = iced::subscription::channel(
             std::any::TypeId::of::<Nip46OverNip55ServerStream>(),
             100,
             |mut output| async move {
@@ -120,7 +140,9 @@ impl Keystache {
                     }
                 }
             },
-        )
+        );
+
+        iced::subscription::Subscription::batch(vec![nip46_sub, wallet_sub])
     }
 }
 
@@ -136,6 +158,10 @@ enum KeystacheMessage {
     SettingsPage(routes::settings::Message),
 
     DbDeleteAllData,
+
+    FederationViewsUpdate {
+        views: BTreeMap<FederationId, FederationView>,
+    },
 
     IncomingNip46Request(
         Arc<(
@@ -160,6 +186,7 @@ struct ConnectedState {
             iced::futures::channel::oneshot::Sender<Nip46RequestApproval>,
         )>,
     >,
+    loadable_federation_views: Loadable<BTreeMap<FederationId, FederationView>>,
 }
 
 // TODO: Clean up this implementation.

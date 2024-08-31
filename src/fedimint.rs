@@ -1,6 +1,8 @@
+use std::pin::Pin;
 use std::{
     collections::{BTreeMap, HashMap},
     path::PathBuf,
+    sync::Arc,
 };
 
 use directories::ProjectDirs;
@@ -12,7 +14,10 @@ use fedimint_core::{config::FederationId, db::Database, invite_code::InviteCode,
 use fedimint_ln_client::{LightningClientModule, LnReceiveState};
 use fedimint_ln_common::{LightningGateway, LightningGatewayAnnouncement};
 use fedimint_rocksdb::RocksDb;
-use iced::futures::{lock::Mutex, StreamExt};
+use iced::futures::{
+    lock::{Mutex, MutexGuard},
+    StreamExt,
+};
 use lightning_invoice::{Bolt11Invoice, Bolt11InvoiceDescription, Description};
 use nostr_sdk::{
     bip39::Mnemonic,
@@ -35,7 +40,7 @@ pub enum LightningReceiveCompletion {
     Failure,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FederationView {
     pub name_or: Option<String>,
     pub balance: Amount,
@@ -44,7 +49,7 @@ pub struct FederationView {
 
 pub struct Wallet {
     derivable_secret: DerivableSecret,
-    clients: Mutex<HashMap<FederationId, ClientHandle>>,
+    clients: Arc<Mutex<HashMap<FederationId, ClientHandle>>>,
     fedimint_clients_data_dir: PathBuf,
 }
 
@@ -52,9 +57,40 @@ impl Wallet {
     pub fn new(xprivkey: Xpriv, network: Network, project_dirs: &ProjectDirs) -> Self {
         Self {
             derivable_secret: get_derivable_secret(&xprivkey, network),
-            clients: Mutex::new(HashMap::new()),
+            clients: Arc::new(Mutex::new(HashMap::new())),
             fedimint_clients_data_dir: project_dirs.data_dir().join(FEDIMINT_CLIENTS_DATA_DIR_NAME),
         }
+    }
+
+    // TODO: Optimize this. Repeated polling is not ideal.
+    pub fn get_update_stream(
+        &self,
+    ) -> Pin<Box<dyn iced::futures::Stream<Item = BTreeMap<FederationId, FederationView>> + Send>>
+    {
+        let clients = self.clients.clone();
+        Box::pin(async_stream::stream! {
+            let mut last_state_or = None;
+            loop {
+                let current_state = Self::get_current_state(clients.lock().await).await;
+
+                // Ignoring clippy lint here since the `match` provides better clarity.
+                #[allow(clippy::option_if_let_else)]
+                let has_changed = match &last_state_or {
+                    Some(last_state) => {
+                        &current_state != last_state
+                    }
+                    // If there was no last state, the state has changed.
+                    None => true,
+                };
+
+                if has_changed {
+                    last_state_or = Some(current_state.clone());
+                    yield current_state;
+                }
+
+                tokio::time::sleep(std::time::Duration::from_secs(100)).await;
+            }
+        })
     }
 
     pub async fn connect_to_joined_federations(&self) -> anyhow::Result<()> {
@@ -122,10 +158,12 @@ impl Wallet {
         Ok(())
     }
 
-    pub async fn get_current_state(&self) -> BTreeMap<FederationId, FederationView> {
+    async fn get_current_state(
+        clients: MutexGuard<'_, HashMap<FederationId, ClientHandle>>,
+    ) -> BTreeMap<FederationId, FederationView> {
         let mut state = BTreeMap::new();
 
-        for (federation_id, client) in self.clients.lock().await.iter() {
+        for (federation_id, client) in clients.iter() {
             let lightning_module = client.get_first_module::<LightningClientModule>();
             let gateways = lightning_module.list_gateways().await;
 

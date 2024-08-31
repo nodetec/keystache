@@ -82,8 +82,6 @@ impl Route {
     pub fn update(&mut self, msg: KeystacheMessage) -> Task<KeystacheMessage> {
         match msg {
             KeystacheMessage::Navigate(route_name) => {
-                let mut task = Task::none();
-
                 let new_self_or = match route_name {
                     RouteName::Unlock => Some(Self::new_locked()),
                     RouteName::Home => self.get_connected_state().map(|connected_state| {
@@ -138,21 +136,13 @@ impl Route {
                     }
                     // Since we're mutating `task`, we can't use a lambda here.
                     #[allow(clippy::option_if_let_else)]
-                    RouteName::BitcoinWallet => match self.get_connected_state() {
-                        Some(connected_state) => {
-                            task = task.chain(Task::done(KeystacheMessage::BitcoinWalletPage(
-                                bitcoin_wallet::Message::LoadFederationConfigViews,
-                            )));
-
-                            Some(Self::BitcoinWallet(bitcoin_wallet::Page {
-                                connected_state: connected_state.clone(),
-                                federation_invite_code: String::new(),
-                                parsed_federation_invite_code_state_or: None,
-                                loadable_federation_views: Loadable::Loading,
-                            }))
-                        }
-                        None => None,
-                    },
+                    RouteName::BitcoinWallet => self.get_connected_state().map(|connected_state| {
+                        Self::BitcoinWallet(bitcoin_wallet::Page {
+                            connected_state: connected_state.clone(),
+                            federation_invite_code: String::new(),
+                            parsed_federation_invite_code_state_or: None,
+                        })
+                    }),
                     RouteName::Settings(subroute_name) => {
                         self.get_connected_state()
                             .map(|connected_state| match subroute_name {
@@ -174,7 +164,7 @@ impl Route {
                     // TODO: Log warning that navigation failed.
                 }
 
-                task
+                Task::none()
             }
             KeystacheMessage::NavigateHomeAndSetConnectedState(connected_state) => {
                 *self = Self::Home(home::Page { connected_state });
@@ -228,6 +218,13 @@ impl Route {
                 {
                     Database::delete();
                     *db_already_exists = false;
+                }
+
+                Task::none()
+            }
+            KeystacheMessage::FederationViewsUpdate { views } => {
+                if let Some(connected_state) = self.get_connected_state_mut() {
+                    connected_state.loadable_federation_views = Loadable::Loaded(views);
                 }
 
                 Task::none()

@@ -1,7 +1,7 @@
-use std::{collections::BTreeMap, str::FromStr};
+use std::str::FromStr;
 
 use fedimint_core::{
-    config::{ClientConfig, FederationId, META_FEDERATION_NAME_KEY},
+    config::{ClientConfig, META_FEDERATION_NAME_KEY},
     invite_code::InviteCode,
 };
 use iced::{
@@ -10,7 +10,6 @@ use iced::{
 };
 
 use crate::{
-    fedimint::FederationView,
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::lighten,
     util::{format_amount_sats, truncate_text},
@@ -36,11 +35,6 @@ pub enum Message {
 
     JoinFedimintFederation(InviteCode),
     ConnectedToFederation,
-
-    LoadFederationConfigViews,
-    LoadedFederationConfigViews {
-        views: BTreeMap<FederationId, FederationView>,
-    },
 }
 
 #[derive(Clone)]
@@ -48,7 +42,6 @@ pub struct Page {
     pub connected_state: ConnectedState,
     pub federation_invite_code: String,
     pub parsed_federation_invite_code_state_or: Option<ParsedFederationInviteCodeState>,
-    pub loadable_federation_views: Loadable<BTreeMap<FederationId, FederationView>>,
 }
 
 #[derive(Clone)]
@@ -143,22 +136,6 @@ impl Page {
 
                 Task::none()
             }
-            Message::LoadFederationConfigViews => {
-                let wallet = self.connected_state.wallet.clone();
-
-                Task::future(async move {
-                    let views = wallet.get_current_state().await;
-
-                    KeystacheMessage::BitcoinWalletPage(Message::LoadedFederationConfigViews {
-                        views,
-                    })
-                })
-            }
-            Message::LoadedFederationConfigViews { views } => {
-                self.loadable_federation_views = Loadable::Loaded(views);
-
-                Task::none()
-            }
         }
     }
 
@@ -167,7 +144,7 @@ impl Page {
     pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
         let mut container = container("Wallet");
 
-        match &self.loadable_federation_views {
+        match &self.connected_state.loadable_federation_views {
             Loadable::Loading => {
                 container = container.push(Text::new("Loading federations...").size(25));
             }

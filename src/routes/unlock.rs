@@ -13,7 +13,7 @@ use crate::{
     ConnectedState, KeystacheMessage, Wallet,
 };
 
-use super::container;
+use super::{container, Loadable};
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -74,6 +74,7 @@ impl Page {
                             db,
                             wallet,
                             in_flight_nip46_requests: VecDeque::new(),
+                            loadable_federation_views: Loadable::Loading,
                         },
                     ))
                 }),
