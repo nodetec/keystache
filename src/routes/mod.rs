@@ -42,7 +42,6 @@ impl RouteName {
     }
 }
 
-#[derive(Clone)]
 pub enum Route {
     Unlock(unlock::Page),
     Home(home::Page),

@@ -13,7 +13,6 @@ use super::{container, RouteName};
 #[derive(Debug, Clone)]
 pub enum Message {}
 
-#[derive(Clone)]
 pub struct Page {
     pub connected_state: ConnectedState,
     pub subroute: Subroute,
@@ -47,7 +46,6 @@ impl SubrouteName {
     }
 }
 
-#[derive(Clone)]
 pub enum Subroute {
     Main(Main),
     About(About),
@@ -62,7 +60,6 @@ impl Subroute {
     }
 }
 
-#[derive(Clone)]
 pub struct Main {}
 
 impl Main {
@@ -88,7 +85,6 @@ impl Main {
     }
 }
 
-#[derive(Clone)]
 pub struct About {}
 
 impl About {

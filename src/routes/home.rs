@@ -4,7 +4,6 @@ use crate::{ConnectedState, KeystacheMessage};
 
 use super::container;
 
-#[derive(Clone)]
 pub struct Page {
     pub connected_state: ConnectedState,
 }

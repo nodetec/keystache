@@ -18,7 +18,6 @@ pub enum Message {
     DeleteRelay { websocket_url: String },
 }
 
-#[derive(Clone)]
 pub struct Page {
     pub connected_state: ConnectedState,
     pub subroute: Subroute,
@@ -74,7 +73,6 @@ impl SubrouteName {
     }
 }
 
-#[derive(Clone)]
 pub enum Subroute {
     List(List),
     Add(Add),
@@ -89,7 +87,6 @@ impl Subroute {
     }
 }
 
-#[derive(Clone)]
 pub struct List {}
 
 impl List {
@@ -126,7 +123,6 @@ impl List {
     }
 }
 
-#[derive(Clone)]
 pub struct Add {
     pub websocket_url: String,
 }

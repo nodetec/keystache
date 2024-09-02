@@ -25,7 +25,6 @@ pub enum Message {
     DeleteKeypair { public_key: String },
 }
 
-#[derive(Clone)]
 pub struct Page {
     pub connected_state: ConnectedState,
     pub subroute: Subroute,
@@ -90,7 +89,6 @@ impl SubrouteName {
     }
 }
 
-#[derive(Clone)]
 pub enum Subroute {
     List(List),
     Add(Add),
@@ -105,7 +103,6 @@ impl Subroute {
     }
 }
 
-#[derive(Clone)]
 pub struct List {}
 
 impl List {
@@ -140,7 +137,6 @@ impl List {
     }
 }
 
-#[derive(Clone)]
 pub struct Add {
     pub nsec: String,
     pub keypair_or: Option<Keypair>, // Parsed from nsec on any update. `Some` if nsec is valid, `None` otherwise.

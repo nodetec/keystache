@@ -40,7 +40,6 @@ pub enum Message {
     ConnectedToFederation,
 }
 
-#[derive(Clone)]
 pub struct Page {
     pub connected_state: ConnectedState,
     pub subroute: Subroute,
@@ -192,7 +191,6 @@ impl SubrouteName {
     }
 }
 
-#[derive(Clone)]
 pub enum Subroute {
     List(List),
     FederationDetails(FederationDetails),
@@ -211,7 +209,6 @@ impl Subroute {
     }
 }
 
-#[derive(Clone)]
 pub struct List {}
 
 impl List {
@@ -287,7 +284,6 @@ impl List {
     }
 }
 
-#[derive(Clone)]
 pub struct FederationDetails {
     view: FederationView,
 }
@@ -363,13 +359,11 @@ impl FederationDetails {
     }
 }
 
-#[derive(Clone)]
 pub struct Add {
     pub federation_invite_code: String,
     pub parsed_federation_invite_code_state_or: Option<ParsedFederationInviteCodeState>,
 }
 
-#[derive(Clone)]
 pub struct ParsedFederationInviteCodeState {
     pub invite_code: InviteCode,
     pub loadable_federation_config: Loadable<ClientConfig>,

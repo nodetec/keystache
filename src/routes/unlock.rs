@@ -22,7 +22,6 @@ pub enum Message {
     PasswordSubmitted,
 }
 
-#[derive(Clone)]
 pub struct Page {
     pub password: String,
     pub is_secure: bool,
