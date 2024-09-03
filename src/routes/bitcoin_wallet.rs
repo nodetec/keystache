@@ -360,13 +360,13 @@ impl FederationDetails {
 }
 
 pub struct Add {
-    pub federation_invite_code: String,
-    pub parsed_federation_invite_code_state_or: Option<ParsedFederationInviteCodeState>,
+    federation_invite_code: String,
+    parsed_federation_invite_code_state_or: Option<ParsedFederationInviteCodeState>,
 }
 
 pub struct ParsedFederationInviteCodeState {
-    pub invite_code: InviteCode,
-    pub loadable_federation_config: Loadable<ClientConfig>,
+    invite_code: InviteCode,
+    loadable_federation_config: Loadable<ClientConfig>,
 }
 
 impl Add {

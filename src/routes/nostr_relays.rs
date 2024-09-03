@@ -124,7 +124,7 @@ impl List {
 }
 
 pub struct Add {
-    pub websocket_url: String,
+    websocket_url: String,
 }
 
 impl Add {

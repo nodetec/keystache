@@ -79,7 +79,6 @@ impl Route {
 
     // TODO: Remove this clippy allow.
     #[allow(clippy::too_many_lines)]
-    #[allow(clippy::cognitive_complexity)]
     pub fn update(&mut self, msg: KeystacheMessage) -> Task<KeystacheMessage> {
         match msg {
             KeystacheMessage::Navigate(route_name) => {
@@ -303,7 +302,7 @@ pub enum Loadable<T> {
     Failed,
 }
 
-pub fn container<'a>(title: &str) -> Column<'a, KeystacheMessage> {
+fn container<'a>(title: &str) -> Column<'a, KeystacheMessage> {
     column![text(title.to_string()).size(35)]
         .spacing(20)
         .align_items(iced::Alignment::Center)

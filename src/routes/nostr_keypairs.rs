@@ -138,8 +138,8 @@ impl List {
 }
 
 pub struct Add {
-    pub nsec: String,
-    pub keypair_or: Option<Keypair>, // Parsed from nsec on any update. `Some` if nsec is valid, `None` otherwise.
+    nsec: String,
+    keypair_or: Option<Keypair>, // Parsed from nsec on any update. `Some` if nsec is valid, `None` otherwise.
 }
 
 impl Add {
