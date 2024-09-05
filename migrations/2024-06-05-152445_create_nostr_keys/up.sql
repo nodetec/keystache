@@ -1,0 +1,7 @@
+CREATE TABLE nostr_keys (
+    id INTEGER PRIMARY KEY NOT NULL,
+    display_name TEXT,
+    npub TEXT NOT NULL UNIQUE,
+    nsec TEXT NOT NULL UNIQUE,
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL
+)

@@ -1,0 +1,25 @@
+name: Dev CI
+
+on:
+  push:
+    branches:
+      - "**" # Matches every branch.
+
+jobs:
+  test-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+      - name: Install Rust Toolchain
+        uses: actions-rs/toolchain@v1.0.6
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+      - name: Run `cargo check`
+        run: cargo check
+      - name: Run `cargo fmt`
+        run: cargo fmt -- --check
+      - name: Run `cargo clippy`
+        run: cargo clippy -- -D warnings
