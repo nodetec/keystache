@@ -163,6 +163,8 @@ enum KeystacheMessage {
         views: BTreeMap<FederationId, FederationView>,
     },
 
+    CopyStringToClipboard(String),
+
     IncomingNip46Request(
         Arc<(
             Vec<nostr_sdk::nips::nip46::Request>,

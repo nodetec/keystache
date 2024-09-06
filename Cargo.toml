@@ -13,6 +13,7 @@ resources = ["assets/fonts/**/*.*"]
 
 [dependencies]
 anyhow = "1.0.80"
+arboard = { version = "3.4.0", default-features = false }
 async-stream = "0.3.5"
 async-trait = "0.1.81"
 chrono = { version = "0.4.34", features = ["alloc"] }
@@ -29,6 +30,7 @@ fedimint-mint-client = "0.4.0"
 fedimint-rocksdb = "0.4.0"
 iced = { git = "https://github.com/iced-rs/iced", rev = "e50aa03", features = [
     "advanced",
+    "qr_code",
     "svg",
     "tokio",
 ] }

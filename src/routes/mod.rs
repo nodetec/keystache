@@ -194,6 +194,12 @@ impl Route {
 
                 Task::none()
             }
+            KeystacheMessage::CopyStringToClipboard(text) => {
+                // TODO: Display a toast stating whether the copy succeeded or failed.
+                let _ = arboard::Clipboard::new().map(|mut clipboard| clipboard.set_text(text));
+
+                Task::none()
+            }
             KeystacheMessage::IncomingNip46Request(data) => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     connected_state.in_flight_nip46_requests.push_back(data);
