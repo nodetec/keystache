@@ -107,7 +107,7 @@ impl Keystache {
 
                     while let Some(views) = wallet_update_stream.next().await {
                         output
-                            .send(KeystacheMessage::FederationViewsUpdate { views })
+                            .send(KeystacheMessage::UpdateFederationViews { views })
                             .await
                             .unwrap();
                     }
@@ -159,9 +159,11 @@ enum KeystacheMessage {
 
     DbDeleteAllData,
 
-    FederationViewsUpdate {
+    UpdateFederationViews {
         views: BTreeMap<FederationId, FederationView>,
     },
+
+    CopyStringToClipboard(String),
 
     IncomingNip46Request(
         Arc<(
