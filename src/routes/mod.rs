@@ -109,7 +109,7 @@ impl Route {
                         self.get_connected_state().map(|connected_state| {
                             Self::BitcoinWallet(bitcoin_wallet::Page {
                                 connected_state: connected_state.clone(),
-                                subroute: subroute_name.to_default_subroute(),
+                                subroute: subroute_name.to_default_subroute(connected_state),
                             })
                         })
                     }
@@ -189,7 +189,11 @@ impl Route {
             }
             KeystacheMessage::UpdateFederationViews { views } => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
-                    connected_state.loadable_federation_views = Loadable::Loaded(views);
+                    connected_state.loadable_federation_views = Loadable::Loaded(views.clone());
+                }
+
+                if let Self::BitcoinWallet(bitcoin_wallet) = self {
+                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateFederationViews(views));
                 }
 
                 Task::none()
@@ -301,11 +305,20 @@ impl Route {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Loadable<T> {
     Loading,
     Loaded(T),
     Failed,
+}
+
+impl<T> Loadable<T> {
+    pub fn as_ref_option(&self) -> Option<&T> {
+        match self {
+            Self::Loaded(data) => Some(data),
+            _ => None,
+        }
+    }
 }
 
 fn container<'a>(title: &str) -> Column<'a, KeystacheMessage> {

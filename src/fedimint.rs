@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::pin::Pin;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -29,6 +30,8 @@ use nostr_sdk::{
 };
 use secp256k1::rand::{seq::SliceRandom, thread_rng};
 
+use crate::util::format_amount;
+
 const FEDIMINT_CLIENTS_DATA_DIR_NAME: &str = "fedimint_clients";
 // TODO: Figure out if we even want this. If we do, it probably shouldn't live here.
 // It'd make more sense for it to live wherever the key is maintained elsewhere, and
@@ -46,6 +49,19 @@ pub struct FederationView {
     pub name_or: Option<String>,
     pub balance: Amount,
     pub gateways: Vec<LightningGatewayAnnouncement>,
+}
+
+impl Display for FederationView {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name_or_id = self
+            .name_or
+            .clone()
+            .unwrap_or_else(|| self.federation_id.to_string());
+
+        let balance = format_amount(self.balance);
+
+        write!(f, "{name_or_id} ({balance})")
+    }
 }
 
 pub struct Wallet {
@@ -185,6 +201,32 @@ impl Wallet {
         }
 
         state
+    }
+
+    pub async fn pay_invoice(
+        &self,
+        invoice: Bolt11Invoice,
+        federation_id: FederationId,
+    ) -> anyhow::Result<()> {
+        let clients = self.clients.lock().await;
+
+        let client = clients
+            .get(&federation_id)
+            .ok_or_else(|| anyhow::anyhow!("Client for federation {} not found", federation_id))?;
+
+        let lightning_module = client.get_first_module::<LightningClientModule>();
+
+        let gateways = lightning_module.list_gateways().await;
+
+        let payment_info = lightning_module
+            .pay_bolt11_invoice(Self::select_gateway(&gateways), invoice, ())
+            .await?;
+
+        lightning_module
+            .wait_for_ln_payment(payment_info.payment_type, payment_info.contract_id, false)
+            .await?;
+
+        Ok(())
     }
 
     pub async fn receive_payment(

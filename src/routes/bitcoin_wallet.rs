@@ -1,13 +1,13 @@
-use std::str::FromStr;
+use std::{collections::BTreeMap, str::FromStr};
 
 use fedimint_core::{
-    config::{ClientConfig, META_FEDERATION_NAME_KEY},
+    config::{ClientConfig, FederationId, META_FEDERATION_NAME_KEY},
     invite_code::InviteCode,
     Amount,
 };
 use iced::{
     widget::{
-        column, container::Style, horizontal_space, row, text_input, Column, Container, Text,
+        column, container::Style, horizontal_space, row, text_input, Column, Container, Space, Text,
     },
     Border, Length, Shadow, Task, Theme,
 };
@@ -20,6 +20,9 @@ use crate::{
 };
 
 use super::{container, Loadable, RouteName};
+
+mod receive;
+mod send;
 
 #[derive(Debug, Clone)]
 pub enum Message {
@@ -38,6 +41,11 @@ pub enum Message {
 
     JoinFedimintFederation(InviteCode),
     ConnectedToFederation,
+
+    Send(send::Message),
+    Receive(receive::Message),
+
+    UpdateFederationViews(BTreeMap<FederationId, FederationView>),
 }
 
 pub struct Page {
@@ -46,6 +54,8 @@ pub struct Page {
 }
 
 impl Page {
+    // TODO: Remove this clippy allow.
+    #[allow(clippy::too_many_lines)]
     pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
         match msg {
             Message::JoinFederationInviteCodeInputChanged(new_federation_invite_code) => {
@@ -155,14 +165,44 @@ impl Page {
 
                 Task::none()
             }
+            Message::Send(send_message) => {
+                if let Subroute::Send(send_page) = &mut self.subroute {
+                    send_page.update(send_message)
+                } else {
+                    Task::none()
+                }
+            }
+            Message::Receive(receive_message) => {
+                if let Subroute::Receive(receive_page) = &mut self.subroute {
+                    receive_page.update(receive_message)
+                } else {
+                    Task::none()
+                }
+            }
+            Message::UpdateFederationViews(federation_views) => {
+                match &mut self.subroute {
+                    Subroute::Send(send_page) => {
+                        send_page.update(send::Message::UpdateFederationViews(federation_views));
+                    }
+                    Subroute::Receive(receive_page) => {
+                        receive_page
+                            .update(receive::Message::UpdateFederationViews(federation_views));
+                    }
+                    _ => {}
+                }
+
+                Task::none()
+            }
         }
     }
 
-    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    pub fn view(&self) -> Column<KeystacheMessage> {
         match &self.subroute {
             Subroute::List(list) => list.view(&self.connected_state),
             Subroute::FederationDetails(federation_details) => federation_details.view(),
             Subroute::Add(add) => add.view(),
+            Subroute::Send(send) => send.view(),
+            Subroute::Receive(receive) => receive.view(),
         }
     }
 }
@@ -172,10 +212,12 @@ pub enum SubrouteName {
     List,
     FederationDetails(FederationView),
     Add,
+    Send,
+    Receive,
 }
 
 impl SubrouteName {
-    pub fn to_default_subroute(&self) -> Subroute {
+    pub fn to_default_subroute(&self, connected_state: &ConnectedState) -> Subroute {
         match self {
             Self::List => Subroute::List(List {}),
             Self::FederationDetails(federation_view) => {
@@ -187,6 +229,8 @@ impl SubrouteName {
                 federation_invite_code: String::new(),
                 parsed_federation_invite_code_state_or: None,
             }),
+            Self::Send => Subroute::Send(send::Page::new(connected_state)),
+            Self::Receive => Subroute::Receive(receive::Page::new(connected_state)),
         }
     }
 }
@@ -195,6 +239,8 @@ pub enum Subroute {
     List(List),
     FederationDetails(FederationDetails),
     Add(Add),
+    Send(send::Page),
+    Receive(receive::Page),
 }
 
 impl Subroute {
@@ -205,6 +251,8 @@ impl Subroute {
                 SubrouteName::FederationDetails(federation_details.view.clone())
             }
             Self::Add(_) => SubrouteName::Add,
+            Self::Send(_) => SubrouteName::Send,
+            Self::Receive(_) => SubrouteName::Receive,
         }
     }
 }
@@ -228,6 +276,18 @@ impl List {
                             .map(|(_federation_id, view)| view.balance.msats)
                             .sum::<u64>(),
                     ))))
+                    .push(row![
+                        icon_button("Send", SvgIcon::ArrowUpward, PaletteColor::Primary).on_press(
+                            KeystacheMessage::Navigate(RouteName::BitcoinWallet(
+                                SubrouteName::Send,
+                            ))
+                        ),
+                        Space::with_width(10.0),
+                        icon_button("Receive", SvgIcon::ArrowDownward, PaletteColor::Primary)
+                            .on_press(KeystacheMessage::Navigate(RouteName::BitcoinWallet(
+                                SubrouteName::Receive,
+                            )))
+                    ])
                     .push(Text::new("Federations").size(25));
 
                 for view in views.values() {
