@@ -187,7 +187,7 @@ impl Route {
 
                 Task::none()
             }
-            KeystacheMessage::FederationViewsUpdate { views } => {
+            KeystacheMessage::UpdateFederationViews { views } => {
                 if let Some(connected_state) = self.get_connected_state_mut() {
                     connected_state.loadable_federation_views = Loadable::Loaded(views);
                 }
