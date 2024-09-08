@@ -3712,9 +3712,9 @@ checksum = "e664971378a3987224f7a0e10059782035e89899ae403718ee07de85bec42afe"
 
 [[package]]
 name = "nip-55"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e3aee927c8ce2463921b541826b3293aa9f5b4bd4f0da38caa0a4befc9c818b"
+checksum = "26e34c26278cda951736c61bf27d72b2a6e8397e97cb6b7b08de8435d4f4131e"
 dependencies = [
  "anyhow",
  "async-trait",
