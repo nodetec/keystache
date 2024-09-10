@@ -11,7 +11,7 @@ use crate::{
     app,
     fedimint::{FederationView, Wallet},
     routes::{self, container, Loadable, RouteName},
-    ui_components::{icon_button, PaletteColor, SvgIcon},
+    ui_components::{icon_button, PaletteColor, SvgIcon, Toast, ToastStatus},
 };
 
 use super::{ConnectedState, SubrouteName};
@@ -25,7 +25,7 @@ pub enum Message {
     // Payment actions.
     PayInvoice(Bolt11Invoice, FederationId),
     PayInvoiceSucceeded(Bolt11Invoice),
-    PayInvoiceFailed(Bolt11Invoice),
+    PayInvoiceFailed((Bolt11Invoice, Arc<anyhow::Error>)),
 
     UpdateFederationViews(BTreeMap<FederationId, FederationView>),
 }
@@ -79,9 +79,11 @@ impl Page {
                         Ok(()) => app::Message::Routes(routes::Message::BitcoinWalletPage(
                             super::Message::Send(Message::PayInvoiceSucceeded(invoice)),
                         )),
-                        // TODO: Display error to user. Probably a toast.
-                        Err(_err) => app::Message::Routes(routes::Message::BitcoinWalletPage(
-                            super::Message::Send(Message::PayInvoiceFailed(invoice)),
+                        Err(err) => app::Message::Routes(routes::Message::BitcoinWalletPage(
+                            super::Message::Send(Message::PayInvoiceFailed((
+                                invoice,
+                                Arc::from(err),
+                            ))),
                         )),
                     }
                 })
@@ -93,16 +95,24 @@ impl Page {
                     self.loadable_invoice_payment_or = Some(Loadable::Loaded(()));
                 }
 
-                Task::none()
+                Task::done(app::Message::AddToast(Toast {
+                    title: "Payment succeeded".to_string(),
+                    body: "Invoice was successfully paid".to_string(),
+                    status: ToastStatus::Good,
+                }))
             }
-            Message::PayInvoiceFailed(invoice) => {
+            Message::PayInvoiceFailed((invoice, err)) => {
                 let invoice_or = Bolt11Invoice::from_str(&self.lightning_invoice_input).ok();
 
                 if Some(invoice) == invoice_or {
                     self.loadable_invoice_payment_or = Some(Loadable::Failed);
                 }
 
-                Task::none()
+                Task::done(app::Message::AddToast(Toast {
+                    title: "Payment failed".to_string(),
+                    body: format!("Failed to pay invoice: {err}"),
+                    status: ToastStatus::Bad,
+                }))
             }
             Message::UpdateFederationViews(federation_views) => {
                 self.federation_combo_box_selected_federation = self

@@ -14,6 +14,49 @@ use crate::{
 
 use super::{PaletteColor, SvgIcon};
 
+pub fn mini_icon_button_no_text<'a>(
+    icon: SvgIcon,
+    palette_color: PaletteColor,
+) -> Button<'a, app::Message, Theme> {
+    // TODO: Find a way to darken the icon color when the button is disabled.
+    let svg = icon.view(16.0, 16.0, Color::WHITE);
+
+    Button::new(svg)
+        .style(move |theme, status| {
+            let border = Border {
+                color: iced::Color::WHITE,
+                width: 0.0,
+                radius: (8.0).into(),
+            };
+
+            let mut bg_color = palette_color.to_color(theme);
+
+            if palette_color == PaletteColor::Background {
+                bg_color = darken(bg_color, 0.05);
+            }
+
+            bg_color = match status {
+                Status::Active => bg_color,
+                Status::Hovered => lighten(bg_color, 0.05),
+                Status::Pressed => lighten(bg_color, 0.1),
+                Status::Disabled => darken(bg_color, 0.5),
+            };
+
+            let mut text_color = Color::WHITE;
+            if status == Status::Disabled {
+                text_color = darken(text_color, 0.5);
+            }
+
+            button::Style {
+                background: Some(bg_color.into()),
+                text_color,
+                border,
+                shadow: Shadow::default(),
+            }
+        })
+        .padding(6)
+}
+
 pub fn icon_button(
     text_str: &str,
     icon: SvgIcon,

@@ -5,7 +5,7 @@ use iced::{
 
 use crate::{
     app,
-    ui_components::{icon_button, PaletteColor, SvgIcon},
+    ui_components::{icon_button, PaletteColor, SvgIcon, Toast, ToastStatus},
 };
 
 use super::{container, ConnectedState, RouteName};
@@ -56,20 +56,24 @@ impl Page {
                 current_password,
                 new_password,
             } => {
-                if self
+                match self
                     .connected_state
                     .db
                     .change_password(&current_password, &new_password)
-                    .is_ok()
                 {
-                    // TODO: Show success in UI.
-
-                    Task::done(app::Message::Routes(super::Message::Navigate(
+                    Ok(()) => Task::done(app::Message::Routes(super::Message::Navigate(
                         RouteName::Settings(SubrouteName::Main),
                     )))
-                } else {
-                    // TODO: Show error in UI.
-                    Task::none()
+                    .chain(Task::done(app::Message::AddToast(Toast {
+                        title: "Password changed".to_string(),
+                        body: "Your password has been changed.".to_string(),
+                        status: ToastStatus::Good,
+                    }))),
+                    Err(_err) => Task::done(app::Message::AddToast(Toast {
+                        title: "Failed to change password".to_string(),
+                        body: "Check that you entered your current password correctly.".to_string(),
+                        status: ToastStatus::Bad,
+                    })),
                 }
             }
         }

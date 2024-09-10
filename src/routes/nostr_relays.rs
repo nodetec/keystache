@@ -10,7 +10,7 @@ use nostr_sdk::Url;
 use crate::{
     app,
     nostr::NostrModuleMessage,
-    ui_components::{icon_button, PaletteColor, SvgIcon},
+    ui_components::{icon_button, PaletteColor, SvgIcon, Toast, ToastStatus},
     util::truncate_text,
 };
 
@@ -32,13 +32,24 @@ impl Page {
     pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
             Message::SaveRelay { websocket_url } => {
-                // TODO: Surface this error to the UI.
-                let _ = self.connected_state.db.save_relay(websocket_url.clone());
+                let task = match self.connected_state.db.save_relay(websocket_url.clone()) {
+                    Ok(()) => Task::done(app::Message::AddToast(Toast {
+                        title: "Saved relay".to_string(),
+                        body: "The relay was successfully saved.".to_string(),
+                        status: ToastStatus::Good,
+                    })),
+                    Err(_err) => Task::done(app::Message::AddToast(Toast {
+                        title: "Failed to save relay".to_string(),
+                        body: "The relay was not saved.".to_string(),
+                        status: ToastStatus::Bad,
+                    })),
+                };
+
                 self.connected_state
                     .nostr_module
                     .update(NostrModuleMessage::ConnectToRelay(websocket_url));
 
-                Task::none()
+                task
             }
             Message::SaveRelayWebsocketUrlInputChanged(new_websocket_url) => {
                 if let Subroute::Add(Add { websocket_url }) = &mut self.subroute {
@@ -48,13 +59,24 @@ impl Page {
                 Task::none()
             }
             Message::DeleteRelay { websocket_url } => {
-                // TODO: Surface this error to the UI.
-                _ = self.connected_state.db.remove_relay(&websocket_url);
+                let task = match self.connected_state.db.remove_relay(&websocket_url) {
+                    Ok(()) => Task::done(app::Message::AddToast(Toast {
+                        title: "Deleted relay".to_string(),
+                        body: "The relay was successfully deleted.".to_string(),
+                        status: ToastStatus::Good,
+                    })),
+                    Err(_err) => Task::done(app::Message::AddToast(Toast {
+                        title: "Failed to delete relay".to_string(),
+                        body: "The relay was not deleted.".to_string(),
+                        status: ToastStatus::Bad,
+                    })),
+                };
+
                 self.connected_state
                     .nostr_module
                     .update(NostrModuleMessage::DisconnectFromRelay(websocket_url));
 
-                Task::none()
+                task
             }
         }
     }
