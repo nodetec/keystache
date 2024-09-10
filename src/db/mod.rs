@@ -95,6 +95,23 @@ impl Database {
         })
     }
 
+    /// Changes the encryption password for the database.
+    pub fn change_password(
+        &self,
+        current_encryption_password: &str,
+        new_encryption_password: &str,
+    ) -> anyhow::Result<()> {
+        // Check that the current password is correct.
+        Self::open_or_create_in_app_data_dir(current_encryption_password)?;
+
+        // Change the password.
+        let new_password = normalize_password(new_encryption_password);
+        let mut connection = self.connection.lock().unwrap();
+        connection.batch_execute(&format!("PRAGMA rekey='{new_password}'"))?;
+
+        Ok(())
+    }
+
     /// Saves a keypair to the database.
     pub fn save_keypair(&self, keypair: &Keypair) -> anyhow::Result<()> {
         let public_key: PublicKey = keypair.x_only_public_key().0.into();
