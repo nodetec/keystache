@@ -63,7 +63,7 @@ pub fn icon_button(
 pub fn sidebar_button<'a>(
     text_str: &'a str,
     icon: SvgIcon,
-    self_route_name: RouteName,
+    self_route_name: &RouteName,
     keystache: &Keystache,
 ) -> Button<'a, KeystacheMessage, Theme> {
     let is_active = self_route_name.is_same_top_level_route_as(&keystache.page.to_name());
