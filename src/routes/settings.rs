@@ -146,6 +146,8 @@ impl Main {
     }
 }
 
+// TODO: Remove this clippy allow.
+#[allow(clippy::struct_field_names)]
 pub struct ChangePassword {
     current_password_input: String,
     new_password_input: String,

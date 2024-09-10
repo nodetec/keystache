@@ -260,6 +260,8 @@ impl Subroute {
 pub struct List {}
 
 impl List {
+    // TODO: Remove this clippy allow.
+    #[allow(clippy::unused_self)]
     fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, KeystacheMessage> {
         let mut container = container("Wallet");
 

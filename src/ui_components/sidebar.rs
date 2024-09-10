@@ -12,12 +12,12 @@ use crate::util::lighten;
 pub fn sidebar(keystache: &Keystache) -> Element<KeystacheMessage> {
     let sidebar = container(
         column![
-            sidebar_button("Home", SvgIcon::Home, RouteName::Home, keystache)
+            sidebar_button("Home", SvgIcon::Home, &RouteName::Home, keystache)
                 .on_press(KeystacheMessage::Navigate(RouteName::Home)),
             sidebar_button(
                 "Keys",
                 SvgIcon::Key,
-                RouteName::NostrKeypairs(nostr_keypairs::SubrouteName::List),
+                &RouteName::NostrKeypairs(nostr_keypairs::SubrouteName::List),
                 keystache
             )
             .on_press(KeystacheMessage::Navigate(RouteName::NostrKeypairs(
@@ -26,7 +26,7 @@ pub fn sidebar(keystache: &Keystache) -> Element<KeystacheMessage> {
             sidebar_button(
                 "Relays",
                 SvgIcon::Hub,
-                RouteName::NostrRelays(nostr_relays::SubrouteName::List),
+                &RouteName::NostrRelays(nostr_relays::SubrouteName::List),
                 keystache
             )
             .on_press(KeystacheMessage::Navigate(RouteName::NostrRelays(
@@ -35,7 +35,7 @@ pub fn sidebar(keystache: &Keystache) -> Element<KeystacheMessage> {
             sidebar_button(
                 "Wallet",
                 SvgIcon::CurrencyBitcoin,
-                RouteName::BitcoinWallet(bitcoin_wallet::SubrouteName::List),
+                &RouteName::BitcoinWallet(bitcoin_wallet::SubrouteName::List),
                 keystache
             )
             .on_press(KeystacheMessage::Navigate(RouteName::BitcoinWallet(
@@ -45,7 +45,7 @@ pub fn sidebar(keystache: &Keystache) -> Element<KeystacheMessage> {
             sidebar_button(
                 "Settings",
                 SvgIcon::Settings,
-                RouteName::Settings(settings::SubrouteName::Main),
+                &RouteName::Settings(settings::SubrouteName::Main),
                 keystache
             )
             .on_press(KeystacheMessage::Navigate(RouteName::Settings(
