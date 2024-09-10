@@ -8,10 +8,11 @@ use iced::{
 use lightning_invoice::Bolt11Invoice;
 
 use crate::{
+    app,
     fedimint::{FederationView, Wallet},
     routes::{container, Loadable, RouteName},
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, KeystacheMessage,
+    ConnectedState,
 };
 
 use super::SubrouteName;
@@ -57,7 +58,7 @@ impl Page {
         }
     }
 
-    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+    pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
             Message::LightningInvoiceInputChanged(new_lightning_invoice_input) => {
                 self.lightning_invoice_input = new_lightning_invoice_input;
@@ -76,11 +77,11 @@ impl Page {
 
                 Task::future(async move {
                     match wallet.pay_invoice(invoice.clone(), federation_id).await {
-                        Ok(()) => KeystacheMessage::BitcoinWalletPage(super::Message::Send(
+                        Ok(()) => app::Message::BitcoinWalletPage(super::Message::Send(
                             Message::PayInvoiceSucceeded(invoice),
                         )),
                         // TODO: Display error to user. Probably a toast.
-                        Err(_err) => KeystacheMessage::BitcoinWalletPage(super::Message::Send(
+                        Err(_err) => app::Message::BitcoinWalletPage(super::Message::Send(
                             Message::PayInvoiceFailed(invoice),
                         )),
                     }
@@ -122,7 +123,7 @@ impl Page {
         }
     }
 
-    pub fn view(&self) -> Column<KeystacheMessage> {
+    pub fn view(&self) -> Column<app::Message> {
         let mut container = container("Send");
 
         let invoice_or = Bolt11Invoice::from_str(&self.lightning_invoice_input).ok();
@@ -139,7 +140,7 @@ impl Page {
             .push(
                 text_input("Lightning Invoice", &self.lightning_invoice_input)
                     .on_input(|input| {
-                        KeystacheMessage::BitcoinWalletPage(super::Message::Send(
+                        app::Message::BitcoinWalletPage(super::Message::Send(
                             Message::LightningInvoiceInputChanged(input),
                         ))
                     })
@@ -155,15 +156,16 @@ impl Page {
             .push(
                 icon_button("Pay Invoice", SvgIcon::Send, PaletteColor::Primary).on_press_maybe(
                     parsed_invoice_and_selected_federation_id_or.map(|(invoice, federation_id)| {
-                        KeystacheMessage::BitcoinWalletPage(super::Message::Send(
-                            Message::PayInvoice(invoice, federation_id),
-                        ))
+                        app::Message::BitcoinWalletPage(super::Message::Send(Message::PayInvoice(
+                            invoice,
+                            federation_id,
+                        )))
                     }),
                 ),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    KeystacheMessage::Navigate(RouteName::BitcoinWallet(SubrouteName::List)),
+                    app::Message::Navigate(RouteName::BitcoinWallet(SubrouteName::List)),
                 ),
             );
 
@@ -183,9 +185,9 @@ impl Page {
         container
     }
 
-    fn on_combo_box_change(federation_view: FederationView) -> KeystacheMessage {
-        KeystacheMessage::BitcoinWalletPage(super::Message::Send(
-            Message::FederationComboBoxSelected(federation_view),
-        ))
+    fn on_combo_box_change(federation_view: FederationView) -> app::Message {
+        app::Message::BitcoinWalletPage(super::Message::Send(Message::FederationComboBoxSelected(
+            federation_view,
+        )))
     }
 }

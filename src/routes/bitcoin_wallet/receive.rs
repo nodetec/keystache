@@ -9,10 +9,11 @@ use iced::{
 use lightning_invoice::Bolt11Invoice;
 
 use crate::{
+    app,
     fedimint::{FederationView, LightningReceiveCompletion, Wallet},
     routes::{container, Loadable, RouteName},
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, KeystacheMessage,
+    ConnectedState,
 };
 
 use super::SubrouteName;
@@ -69,7 +70,7 @@ impl Page {
         }
     }
 
-    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+    pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
             Message::AmountInputChanged(new_amount_input) => {
                 self.amount_input = new_amount_input;
@@ -97,7 +98,7 @@ impl Page {
                         .await
                     {
                         Ok((invoice, payment_completion_receiver)) => {
-                            yield KeystacheMessage::BitcoinWalletPage(super::Message::Receive(
+                            yield app::Message::BitcoinWalletPage(super::Message::Receive(
                                 Message::InvoiceCreated(
                                 invoice.clone(),
                             )));
@@ -106,11 +107,11 @@ impl Page {
                                 Ok(lightning_receive_completion) => {
                                     match lightning_receive_completion {
                                         LightningReceiveCompletion::Success => {
-                                            yield KeystacheMessage::BitcoinWalletPage(super::Message::Receive(
+                                            yield app::Message::BitcoinWalletPage(super::Message::Receive(
                                                 Message::PaymentSuccess(invoice)));
                                         }
                                         LightningReceiveCompletion::Failure => {
-                                            yield KeystacheMessage::BitcoinWalletPage(super::Message::Receive(
+                                            yield app::Message::BitcoinWalletPage(super::Message::Receive(
                                                 Message::PaymentFailure(invoice)));
                                         }
                                     }
@@ -121,7 +122,7 @@ impl Page {
                             };
                         }
                         Err(_) => {
-                            yield KeystacheMessage::BitcoinWalletPage(super::Message::Receive(
+                            yield app::Message::BitcoinWalletPage(super::Message::Receive(
                                 Message::FailedToCreateInvoice));
                         }
                     }
@@ -183,7 +184,7 @@ impl Page {
         }
     }
 
-    pub fn view(&self) -> Column<KeystacheMessage> {
+    pub fn view(&self) -> Column<app::Message> {
         let mut container = container("Receive");
 
         let amount_or = self
@@ -202,7 +203,7 @@ impl Page {
             .push(
                 text_input("Amount to receive", &self.amount_input)
                     .on_input(|input| {
-                        KeystacheMessage::BitcoinWalletPage(super::Message::Receive(
+                        app::Message::BitcoinWalletPage(super::Message::Receive(
                             Message::AmountInputChanged(input),
                         ))
                     })
@@ -238,9 +239,7 @@ impl Page {
                                 PaletteColor::Primary,
                             )
                             .on_press(
-                                KeystacheMessage::CopyStringToClipboard(
-                                    lightning_invoice.to_string(),
-                                ),
+                                app::Message::CopyStringToClipboard(lightning_invoice.to_string()),
                             ),
                         )
                     }
@@ -251,7 +250,7 @@ impl Page {
             container.push(
                 icon_button("Create Invoice", SvgIcon::Send, PaletteColor::Primary).on_press_maybe(
                     parsed_amount_and_selected_federation_id_or.map(|(amount, federation_id)| {
-                        KeystacheMessage::BitcoinWalletPage(super::Message::Receive(
+                        app::Message::BitcoinWalletPage(super::Message::Receive(
                             Message::CreateInvoice(amount, federation_id),
                         ))
                     }),
@@ -261,21 +260,21 @@ impl Page {
 
         container = container.push(
             icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                KeystacheMessage::Navigate(RouteName::BitcoinWallet(SubrouteName::List)),
+                app::Message::Navigate(RouteName::BitcoinWallet(SubrouteName::List)),
             ),
         );
 
         container
     }
 
-    fn on_denomination_combo_box_change(denomination: Denomination) -> KeystacheMessage {
-        KeystacheMessage::BitcoinWalletPage(super::Message::Receive(
+    fn on_denomination_combo_box_change(denomination: Denomination) -> app::Message {
+        app::Message::BitcoinWalletPage(super::Message::Receive(
             Message::DenominationComboBoxSelected(denomination),
         ))
     }
 
-    fn on_federation_combo_box_change(federation_view: FederationView) -> KeystacheMessage {
-        KeystacheMessage::BitcoinWalletPage(super::Message::Receive(
+    fn on_federation_combo_box_change(federation_view: FederationView) -> app::Message {
+        app::Message::BitcoinWalletPage(super::Message::Receive(
             Message::FederationComboBoxSelected(federation_view),
         ))
     }

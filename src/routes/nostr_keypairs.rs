@@ -11,9 +11,10 @@ use nostr_sdk::{
 use secp256k1::Secp256k1;
 
 use crate::{
+    app,
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::truncate_text,
-    ConnectedState, KeystacheMessage,
+    ConnectedState,
 };
 
 use super::{container, RouteName};
@@ -31,7 +32,7 @@ pub struct Page {
 }
 
 impl Page {
-    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+    pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
             Message::SaveKeypair(keypair) => {
                 // TODO: Surface this error to the UI.
@@ -63,7 +64,7 @@ impl Page {
         }
     }
 
-    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    pub fn view<'a>(&self) -> Column<'a, app::Message> {
         match &self.subroute {
             Subroute::List(list) => list.view(&self.connected_state),
             Subroute::Add(add) => add.view(),
@@ -108,7 +109,7 @@ pub struct List {}
 impl List {
     // TODO: Remove this clippy allow.
     #[allow(clippy::unused_self)]
-    fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, app::Message> {
         // TODO: Add pagination.
         let Ok(public_keys) = connected_state.db.list_public_keys(999, 0) else {
             return container("Keys").push("Failed to load keys");
@@ -122,14 +123,14 @@ impl List {
                     .size(20)
                     .horizontal_alignment(iced::alignment::Horizontal::Center),
                 icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger).on_press(
-                    KeystacheMessage::NostrKeypairsPage(Message::DeleteKeypair { public_key })
+                    app::Message::NostrKeypairsPage(Message::DeleteKeypair { public_key })
                 ),
             ]);
         }
 
         container = container.push(
             icon_button("Add Keypair", SvgIcon::Add, PaletteColor::Primary).on_press(
-                KeystacheMessage::Navigate(RouteName::NostrKeypairs(SubrouteName::Add)),
+                app::Message::Navigate(RouteName::NostrKeypairs(SubrouteName::Add)),
             ),
         );
 
@@ -143,14 +144,12 @@ pub struct Add {
 }
 
 impl Add {
-    fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self) -> Column<'a, app::Message> {
         container("Add Keypair")
             .push(
                 text_input("nSec", &self.nsec)
                     .on_input(|input| {
-                        KeystacheMessage::NostrKeypairsPage(Message::SaveKeypairNsecInputChanged(
-                            input,
-                        ))
+                        app::Message::NostrKeypairsPage(Message::SaveKeypairNsecInputChanged(input))
                     })
                     .padding(10)
                     .size(30),
@@ -158,7 +157,7 @@ impl Add {
             .push(
                 icon_button("Save", SvgIcon::Save, PaletteColor::Primary).on_press_maybe(
                     self.keypair_or.map(|keypair| {
-                        KeystacheMessage::NostrKeypairsPage(Message::SaveKeypair(keypair))
+                        app::Message::NostrKeypairsPage(Message::SaveKeypair(keypair))
                     }),
                 ),
             )
@@ -168,13 +167,13 @@ impl Add {
                     SvgIcon::Casino,
                     PaletteColor::Primary,
                 )
-                .on_press(KeystacheMessage::NostrKeypairsPage(
-                    Message::SaveKeypair(Keypair::new_global(&mut thread_rng())),
-                )),
+                .on_press(app::Message::NostrKeypairsPage(Message::SaveKeypair(
+                    Keypair::new_global(&mut thread_rng()),
+                ))),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    KeystacheMessage::Navigate(RouteName::NostrKeypairs(SubrouteName::List)),
+                    app::Message::Navigate(RouteName::NostrKeypairs(SubrouteName::List)),
                 ),
             )
     }

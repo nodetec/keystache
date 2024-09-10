@@ -4,9 +4,10 @@ use iced::{
 };
 
 use crate::{
+    app,
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::truncate_text,
-    ConnectedState, KeystacheMessage,
+    ConnectedState,
 };
 
 use super::{container, RouteName};
@@ -24,7 +25,7 @@ pub struct Page {
 }
 
 impl Page {
-    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+    pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
             Message::SaveRelay { websocket_url } => {
                 // TODO: Surface this error to the UI.
@@ -48,7 +49,7 @@ impl Page {
         }
     }
 
-    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    pub fn view<'a>(&self) -> Column<'a, app::Message> {
         match &self.subroute {
             Subroute::List(list) => list.view(&self.connected_state),
             Subroute::Add(add) => add.view(),
@@ -92,7 +93,7 @@ pub struct List {}
 impl List {
     // TODO: Remove this clippy allow.
     #[allow(clippy::unused_self)]
-    fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, app::Message> {
         // TODO: Add pagination.
         let Ok(relays) = connected_state.db.list_relays(999, 0) else {
             return container("Relays").push("Failed to load relays");
@@ -106,7 +107,7 @@ impl List {
                     .size(20)
                     .horizontal_alignment(iced::alignment::Horizontal::Center),
                 icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger).on_press(
-                    KeystacheMessage::NostrRelaysPage(Message::DeleteRelay {
+                    app::Message::NostrRelaysPage(Message::DeleteRelay {
                         websocket_url: relay.websocket_url
                     })
                 ),
@@ -115,7 +116,7 @@ impl List {
 
         container = container.push(
             icon_button("Add Relay", SvgIcon::Add, PaletteColor::Primary).on_press(
-                KeystacheMessage::Navigate(RouteName::NostrRelays(SubrouteName::Add)),
+                app::Message::Navigate(RouteName::NostrRelays(SubrouteName::Add)),
             ),
         );
 
@@ -128,28 +129,28 @@ pub struct Add {
 }
 
 impl Add {
-    fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self) -> Column<'a, app::Message> {
         container("Add Relay")
             .push(
                 text_input("Websocket URL", &self.websocket_url)
                     .on_input(|input| {
-                        KeystacheMessage::NostrRelaysPage(
-                            Message::SaveRelayWebsocketUrlInputChanged(input),
-                        )
+                        app::Message::NostrRelaysPage(Message::SaveRelayWebsocketUrlInputChanged(
+                            input,
+                        ))
                     })
                     .padding(10)
                     .size(30),
             )
             .push(
                 icon_button("Save", SvgIcon::Save, PaletteColor::Primary).on_press(
-                    KeystacheMessage::NostrRelaysPage(Message::SaveRelay {
+                    app::Message::NostrRelaysPage(Message::SaveRelay {
                         websocket_url: self.websocket_url.clone(),
                     }),
                 ),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    KeystacheMessage::Navigate(RouteName::NostrRelays(SubrouteName::List)),
+                    app::Message::Navigate(RouteName::NostrRelays(SubrouteName::List)),
                 ),
             )
     }

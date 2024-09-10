@@ -8,9 +8,10 @@ use iced::{
 use nostr_sdk::bitcoin::{bip32::Xpriv, Network};
 
 use crate::{
+    app,
     db::Database,
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, KeystacheMessage, Wallet,
+    ConnectedState, Wallet,
 };
 
 use super::{container, Loadable};
@@ -29,7 +30,7 @@ pub struct Page {
 }
 
 impl Page {
-    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+    pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
             Message::PasswordInputChanged(new_password) => {
                 self.password = new_password;
@@ -68,7 +69,7 @@ impl Page {
                         wallet_clone.connect_to_joined_federations().await.unwrap();
                     });
 
-                    Task::done(KeystacheMessage::NavigateHomeAndSetConnectedState(
+                    Task::done(app::Message::NavigateHomeAndSetConnectedState(
                         ConnectedState {
                             db,
                             wallet,
@@ -80,7 +81,7 @@ impl Page {
         }
     }
 
-    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    pub fn view<'a>(&self) -> Column<'a, app::Message> {
         let Self {
             password,
             is_secure,
@@ -88,7 +89,7 @@ impl Page {
         } = self;
 
         let text_input = text_input("Password", password)
-            .on_input(|input| KeystacheMessage::UnlockPage(Message::PasswordInputChanged(input)))
+            .on_input(|input| app::Message::UnlockPage(Message::PasswordInputChanged(input)))
             .padding(10)
             .size(30);
 
@@ -116,20 +117,20 @@ impl Page {
                 text_input.secure(*is_secure),
                 Space::with_width(Pixels(20.0)),
                 checkbox("Show password", !is_secure)
-                    .on_toggle(|_| KeystacheMessage::UnlockPage(Message::ToggleSecureInput))
+                    .on_toggle(|_| app::Message::UnlockPage(Message::ToggleSecureInput))
             ])
             .push(
                 icon_button(next_button_text, SvgIcon::LockOpen, PaletteColor::Primary)
                     .on_press_maybe(
                         (!password.is_empty())
-                            .then_some(KeystacheMessage::UnlockPage(Message::PasswordSubmitted)),
+                            .then_some(app::Message::UnlockPage(Message::PasswordSubmitted)),
                     ),
             );
 
         if *db_already_exists {
             container = container.push(
                 icon_button("Delete All Data", SvgIcon::Delete, PaletteColor::Danger)
-                    .on_press(KeystacheMessage::DbDeleteAllData),
+                    .on_press(app::Message::DbDeleteAllData),
             );
         }
 
