@@ -10,7 +10,7 @@ use lightning_invoice::Bolt11Invoice;
 use crate::{
     app,
     fedimint::{FederationView, Wallet},
-    routes::{container, Loadable, RouteName},
+    routes::{self, container, Loadable, RouteName},
     ui_components::{icon_button, PaletteColor, SvgIcon},
     ConnectedState,
 };
@@ -77,12 +77,12 @@ impl Page {
 
                 Task::future(async move {
                     match wallet.pay_invoice(invoice.clone(), federation_id).await {
-                        Ok(()) => app::Message::BitcoinWalletPage(super::Message::Send(
-                            Message::PayInvoiceSucceeded(invoice),
+                        Ok(()) => app::Message::Routes(routes::Message::BitcoinWalletPage(
+                            super::Message::Send(Message::PayInvoiceSucceeded(invoice)),
                         )),
                         // TODO: Display error to user. Probably a toast.
-                        Err(_err) => app::Message::BitcoinWalletPage(super::Message::Send(
-                            Message::PayInvoiceFailed(invoice),
+                        Err(_err) => app::Message::Routes(routes::Message::BitcoinWalletPage(
+                            super::Message::Send(Message::PayInvoiceFailed(invoice)),
                         )),
                     }
                 })
@@ -140,8 +140,8 @@ impl Page {
             .push(
                 text_input("Lightning Invoice", &self.lightning_invoice_input)
                     .on_input(|input| {
-                        app::Message::BitcoinWalletPage(super::Message::Send(
-                            Message::LightningInvoiceInputChanged(input),
+                        app::Message::Routes(routes::Message::BitcoinWalletPage(
+                            super::Message::Send(Message::LightningInvoiceInputChanged(input)),
                         ))
                     })
                     .padding(10)
@@ -156,16 +156,17 @@ impl Page {
             .push(
                 icon_button("Pay Invoice", SvgIcon::Send, PaletteColor::Primary).on_press_maybe(
                     parsed_invoice_and_selected_federation_id_or.map(|(invoice, federation_id)| {
-                        app::Message::BitcoinWalletPage(super::Message::Send(Message::PayInvoice(
-                            invoice,
-                            federation_id,
-                        )))
+                        app::Message::Routes(routes::Message::BitcoinWalletPage(
+                            super::Message::Send(Message::PayInvoice(invoice, federation_id)),
+                        ))
                     }),
                 ),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    app::Message::Navigate(RouteName::BitcoinWallet(SubrouteName::List)),
+                    app::Message::Routes(routes::Message::Navigate(RouteName::BitcoinWallet(
+                        SubrouteName::List,
+                    ))),
                 ),
             );
 
@@ -186,8 +187,8 @@ impl Page {
     }
 
     fn on_combo_box_change(federation_view: FederationView) -> app::Message {
-        app::Message::BitcoinWalletPage(super::Message::Send(Message::FederationComboBoxSelected(
-            federation_view,
+        app::Message::Routes(routes::Message::BitcoinWalletPage(super::Message::Send(
+            Message::FederationComboBoxSelected(federation_view),
         )))
     }
 }

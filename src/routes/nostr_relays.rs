@@ -107,16 +107,18 @@ impl List {
                     .size(20)
                     .horizontal_alignment(iced::alignment::Horizontal::Center),
                 icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger).on_press(
-                    app::Message::NostrRelaysPage(Message::DeleteRelay {
+                    app::Message::Routes(super::Message::NostrRelaysPage(Message::DeleteRelay {
                         websocket_url: relay.websocket_url
-                    })
+                    }))
                 ),
             ]);
         }
 
         container = container.push(
             icon_button("Add Relay", SvgIcon::Add, PaletteColor::Primary).on_press(
-                app::Message::Navigate(RouteName::NostrRelays(SubrouteName::Add)),
+                app::Message::Routes(super::Message::Navigate(RouteName::NostrRelays(
+                    SubrouteName::Add,
+                ))),
             ),
         );
 
@@ -134,8 +136,8 @@ impl Add {
             .push(
                 text_input("Websocket URL", &self.websocket_url)
                     .on_input(|input| {
-                        app::Message::NostrRelaysPage(Message::SaveRelayWebsocketUrlInputChanged(
-                            input,
+                        app::Message::Routes(super::Message::NostrRelaysPage(
+                            Message::SaveRelayWebsocketUrlInputChanged(input),
                         ))
                     })
                     .padding(10)
@@ -143,14 +145,16 @@ impl Add {
             )
             .push(
                 icon_button("Save", SvgIcon::Save, PaletteColor::Primary).on_press(
-                    app::Message::NostrRelaysPage(Message::SaveRelay {
+                    app::Message::Routes(super::Message::NostrRelaysPage(Message::SaveRelay {
                         websocket_url: self.websocket_url.clone(),
-                    }),
+                    })),
                 ),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    app::Message::Navigate(RouteName::NostrRelays(SubrouteName::List)),
+                    app::Message::Routes(super::Message::Navigate(RouteName::NostrRelays(
+                        SubrouteName::List,
+                    ))),
                 ),
             )
     }

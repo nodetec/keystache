@@ -123,14 +123,18 @@ impl List {
                     .size(20)
                     .horizontal_alignment(iced::alignment::Horizontal::Center),
                 icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger).on_press(
-                    app::Message::NostrKeypairsPage(Message::DeleteKeypair { public_key })
+                    app::Message::Routes(super::Message::NostrKeypairsPage(
+                        Message::DeleteKeypair { public_key }
+                    ))
                 ),
             ]);
         }
 
         container = container.push(
             icon_button("Add Keypair", SvgIcon::Add, PaletteColor::Primary).on_press(
-                app::Message::Navigate(RouteName::NostrKeypairs(SubrouteName::Add)),
+                app::Message::Routes(super::Message::Navigate(RouteName::NostrKeypairs(
+                    SubrouteName::Add,
+                ))),
             ),
         );
 
@@ -149,7 +153,9 @@ impl Add {
             .push(
                 text_input("nSec", &self.nsec)
                     .on_input(|input| {
-                        app::Message::NostrKeypairsPage(Message::SaveKeypairNsecInputChanged(input))
+                        app::Message::Routes(super::Message::NostrKeypairsPage(
+                            Message::SaveKeypairNsecInputChanged(input),
+                        ))
                     })
                     .padding(10)
                     .size(30),
@@ -157,7 +163,9 @@ impl Add {
             .push(
                 icon_button("Save", SvgIcon::Save, PaletteColor::Primary).on_press_maybe(
                     self.keypair_or.map(|keypair| {
-                        app::Message::NostrKeypairsPage(Message::SaveKeypair(keypair))
+                        app::Message::Routes(super::Message::NostrKeypairsPage(
+                            Message::SaveKeypair(keypair),
+                        ))
                     }),
                 ),
             )
@@ -167,13 +175,15 @@ impl Add {
                     SvgIcon::Casino,
                     PaletteColor::Primary,
                 )
-                .on_press(app::Message::NostrKeypairsPage(Message::SaveKeypair(
-                    Keypair::new_global(&mut thread_rng()),
+                .on_press(app::Message::Routes(super::Message::NostrKeypairsPage(
+                    Message::SaveKeypair(Keypair::new_global(&mut thread_rng())),
                 ))),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    app::Message::Navigate(RouteName::NostrKeypairs(SubrouteName::List)),
+                    app::Message::Routes(super::Message::Navigate(RouteName::NostrKeypairs(
+                        SubrouteName::List,
+                    ))),
                 ),
             )
     }

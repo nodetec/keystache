@@ -65,8 +65,8 @@ impl Page {
                 {
                     // TODO: Show success in UI.
 
-                    Task::done(app::Message::Navigate(RouteName::Settings(
-                        SubrouteName::Main,
+                    Task::done(app::Message::Routes(super::Message::Navigate(
+                        RouteName::Settings(SubrouteName::Main),
                     )))
                 } else {
                     // TODO: Show error in UI.
@@ -131,7 +131,9 @@ impl Main {
         container("Settings")
             .push(
                 icon_button("Change Password", SvgIcon::Lock, PaletteColor::Primary).on_press(
-                    app::Message::Navigate(RouteName::Settings(SubrouteName::ChangePassword)),
+                    app::Message::Routes(super::Message::Navigate(RouteName::Settings(
+                        SubrouteName::ChangePassword,
+                    ))),
                 ),
             )
             .push(icon_button(
@@ -141,7 +143,9 @@ impl Main {
             ))
             .push(
                 icon_button("About", SvgIcon::Info, PaletteColor::Primary).on_press(
-                    app::Message::Navigate(RouteName::Settings(SubrouteName::About)),
+                    app::Message::Routes(super::Message::Navigate(RouteName::Settings(
+                        SubrouteName::About,
+                    ))),
                 ),
             )
     }
@@ -163,9 +167,9 @@ impl ChangePassword {
             .push(
                 text_input("Current Password", &self.current_password_input)
                     .on_input(|input| {
-                        app::Message::SettingsPage(
+                        app::Message::Routes(super::Message::SettingsPage(
                             Message::ChangePasswordCurrentPasswordInputChanged(input),
-                        )
+                        ))
                     })
                     .secure(true)
                     .padding(10)
@@ -174,8 +178,8 @@ impl ChangePassword {
             .push(
                 text_input("New Password", &self.new_password_input)
                     .on_input(|input| {
-                        app::Message::SettingsPage(Message::ChangePasswordNewPasswordInputChanged(
-                            input,
+                        app::Message::Routes(super::Message::SettingsPage(
+                            Message::ChangePasswordNewPasswordInputChanged(input),
                         ))
                     })
                     .secure(true)
@@ -188,9 +192,9 @@ impl ChangePassword {
                     &self.new_password_confirmation_input,
                 )
                 .on_input(|input| {
-                    app::Message::SettingsPage(
+                    app::Message::Routes(super::Message::SettingsPage(
                         Message::ChangePasswordNewPasswordConfirmationInputChanged(input),
-                    )
+                    ))
                 })
                 .secure(true)
                 .padding(10)
@@ -203,16 +207,20 @@ impl ChangePassword {
                             && !self.new_password_input.is_empty()
                             && self.new_password_input == self.new_password_confirmation_input)
                             .then(|| {
-                                app::Message::SettingsPage(Message::ChangePasswordSubmit {
-                                    current_password: self.current_password_input.clone(),
-                                    new_password: self.new_password_input.clone(),
-                                })
+                                app::Message::Routes(super::Message::SettingsPage(
+                                    Message::ChangePasswordSubmit {
+                                        current_password: self.current_password_input.clone(),
+                                        new_password: self.new_password_input.clone(),
+                                    },
+                                ))
                             }),
                     ),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    app::Message::Navigate(RouteName::Settings(SubrouteName::Main)),
+                    app::Message::Routes(super::Message::Navigate(RouteName::Settings(
+                        SubrouteName::Main,
+                    ))),
                 ),
             )
     }
@@ -232,7 +240,7 @@ impl About {
             .push(Text::new("Version").size(25))
             .push(Text::new(env!("CARGO_PKG_VERSION")).size(15))
             .push(icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                app::Message::Navigate(RouteName::Settings(SubrouteName::Main))
+                app::Message::Routes(super::Message::Navigate(RouteName::Settings(SubrouteName::Main)))
             ))
     }
 }

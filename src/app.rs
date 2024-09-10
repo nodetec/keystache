@@ -10,22 +10,15 @@ use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
 use nostr_sdk::PublicKey;
 
 use crate::{
+    db::Database,
     fedimint::{FederationView, Wallet},
-    routes::{self, Route, RouteName},
+    routes::{self, bitcoin_wallet, unlock, Loadable, Route, RouteName},
     ui_components::sidebar,
-    ConnectedState,
 };
 
 #[derive(Debug, Clone)]
 pub enum Message {
-    Navigate(RouteName),
-    NavigateHomeAndSetConnectedState(ConnectedState),
-
-    UnlockPage(routes::unlock::Message),
-    NostrKeypairsPage(routes::nostr_keypairs::Message),
-    NostrRelaysPage(routes::nostr_relays::Message),
-    BitcoinWalletPage(routes::bitcoin_wallet::Message),
-    SettingsPage(routes::settings::Message),
+    Routes(routes::Message),
 
     DbDeleteAllData,
 
@@ -59,8 +52,65 @@ impl Default for App {
 }
 
 impl App {
-    pub fn update(&mut self, event: Message) -> Task<Message> {
-        self.page.update(event)
+    pub fn update(&mut self, msg: Message) -> Task<Message> {
+        match msg {
+            Message::Routes(routes_msg) => self.page.update(routes_msg),
+            Message::DbDeleteAllData => {
+                if let Route::Unlock(unlock::Page {
+                    db_already_exists, ..
+                }) = &mut self.page
+                {
+                    Database::delete();
+                    *db_already_exists = false;
+                }
+
+                Task::none()
+            }
+            Message::UpdateFederationViews { views } => {
+                if let Some(connected_state) = self.page.get_connected_state_mut() {
+                    connected_state.loadable_federation_views = Loadable::Loaded(views.clone());
+                }
+
+                if let Route::BitcoinWallet(bitcoin_wallet) = &mut self.page {
+                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateFederationViews(views));
+                }
+
+                Task::none()
+            }
+            Message::CopyStringToClipboard(text) => {
+                // TODO: Display a toast stating whether the copy succeeded or failed.
+                let _ = arboard::Clipboard::new().map(|mut clipboard| clipboard.set_text(text));
+
+                Task::none()
+            }
+            Message::IncomingNip46Request(data) => {
+                if let Some(connected_state) = self.page.get_connected_state_mut() {
+                    connected_state.in_flight_nip46_requests.push_back(data);
+                }
+
+                Task::none()
+            }
+            Message::ApproveFirstIncomingNip46Request => {
+                if let Some(connected_state) = self.page.get_connected_state_mut() {
+                    if let Some(req) = connected_state.in_flight_nip46_requests.pop_front() {
+                        let req = Arc::try_unwrap(req).unwrap();
+                        req.2.send(Nip46RequestApproval::Approve).unwrap();
+                    }
+                }
+
+                Task::none()
+            }
+            Message::RejectFirstIncomingNip46Request => {
+                if let Some(connected_state) = self.page.get_connected_state_mut() {
+                    if let Some(req) = connected_state.in_flight_nip46_requests.pop_front() {
+                        let req = Arc::try_unwrap(req).unwrap();
+                        req.2.send(Nip46RequestApproval::Reject).unwrap();
+                    }
+                }
+
+                Task::none()
+            }
+        }
     }
 
     pub fn view(&self) -> Element<Message> {

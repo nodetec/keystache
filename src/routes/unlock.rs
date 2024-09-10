@@ -42,42 +42,48 @@ impl Page {
 
                 Task::none()
             }
-            Message::PasswordSubmitted => Database::open_or_create_in_app_data_dir(&self.password)
-                .map_or(Task::none(), |db| {
-                    let db = Arc::new(db);
+            Message::PasswordSubmitted => {
+                Database::open_or_create_in_app_data_dir(&self.password).map_or(
+                    Task::none(),
+                    |db| {
+                        let db = Arc::new(db);
 
-                    // TODO: Handle this unwrap. We should initialize
-                    // project directories elsewhere and pass them in.
-                    let project_dirs = ProjectDirs::from("co", "nodetec", "keystache")
-                        .ok_or_else(|| {
-                            anyhow::anyhow!("Could not determine Keystache project directories.")
-                        })
-                        .unwrap();
+                        // TODO: Handle this unwrap. We should initialize
+                        // project directories elsewhere and pass them in.
+                        let project_dirs = ProjectDirs::from("co", "nodetec", "keystache")
+                            .ok_or_else(|| {
+                                anyhow::anyhow!(
+                                    "Could not determine Keystache project directories."
+                                )
+                            })
+                            .unwrap();
 
-                    // TODO: CRITICAL: Remove this hardcoded key.
-                    // TODO: Retrieve network from elsewhere rather than hardcoding.
-                    let wallet = Arc::new(Wallet::new(
-                        Xpriv::new_master(Network::Bitcoin, &[1, 2, 3, 4, 5, 6, 7, 8]).unwrap(),
-                        Network::Bitcoin,
-                        &project_dirs,
-                    ));
+                        // TODO: CRITICAL: Remove this hardcoded key.
+                        // TODO: Retrieve network from elsewhere rather than hardcoding.
+                        let wallet = Arc::new(Wallet::new(
+                            Xpriv::new_master(Network::Bitcoin, &[1, 2, 3, 4, 5, 6, 7, 8]).unwrap(),
+                            Network::Bitcoin,
+                            &project_dirs,
+                        ));
 
-                    // TODO: We should call `Task::chain()` and trigger a message rather than
-                    // spawning a new task, since its completion doesn't trigger any UI event.
-                    let wallet_clone = wallet.clone();
-                    tokio::spawn(async move {
-                        wallet_clone.connect_to_joined_federations().await.unwrap();
-                    });
+                        // TODO: We should call `Task::chain()` and trigger a message rather than
+                        // spawning a new task, since its completion doesn't trigger any UI event.
+                        let wallet_clone = wallet.clone();
+                        tokio::spawn(async move {
+                            wallet_clone.connect_to_joined_federations().await.unwrap();
+                        });
 
-                    Task::done(app::Message::NavigateHomeAndSetConnectedState(
-                        ConnectedState {
-                            db,
-                            wallet,
-                            in_flight_nip46_requests: VecDeque::new(),
-                            loadable_federation_views: Loadable::Loading,
-                        },
-                    ))
-                }),
+                        Task::done(app::Message::Routes(
+                            super::Message::NavigateHomeAndSetConnectedState(ConnectedState {
+                                db,
+                                wallet,
+                                in_flight_nip46_requests: VecDeque::new(),
+                                loadable_federation_views: Loadable::Loading,
+                            }),
+                        ))
+                    },
+                )
+            }
         }
     }
 
@@ -89,7 +95,11 @@ impl Page {
         } = self;
 
         let text_input = text_input("Password", password)
-            .on_input(|input| app::Message::UnlockPage(Message::PasswordInputChanged(input)))
+            .on_input(|input| {
+                app::Message::Routes(super::Message::UnlockPage(Message::PasswordInputChanged(
+                    input,
+                )))
+            })
             .padding(10)
             .size(30);
 
@@ -116,15 +126,15 @@ impl Page {
             .push(row![
                 text_input.secure(*is_secure),
                 Space::with_width(Pixels(20.0)),
-                checkbox("Show password", !is_secure)
-                    .on_toggle(|_| app::Message::UnlockPage(Message::ToggleSecureInput))
+                checkbox("Show password", !is_secure).on_toggle(|_| app::Message::Routes(
+                    super::Message::UnlockPage(Message::ToggleSecureInput)
+                ))
             ])
             .push(
                 icon_button(next_button_text, SvgIcon::LockOpen, PaletteColor::Primary)
-                    .on_press_maybe(
-                        (!password.is_empty())
-                            .then_some(app::Message::UnlockPage(Message::PasswordSubmitted)),
-                    ),
+                    .on_press_maybe((!password.is_empty()).then_some(app::Message::Routes(
+                        super::Message::UnlockPage(Message::PasswordSubmitted),
+                    ))),
             );
 
         if *db_already_exists {
