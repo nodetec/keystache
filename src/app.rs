@@ -2,7 +2,7 @@ use std::{collections::BTreeMap, sync::Arc};
 
 use fedimint_core::config::FederationId;
 use iced::{
-    futures::{SinkExt, StreamExt},
+    futures::StreamExt,
     widget::{column, container, row, scrollable},
     Element, Length, Task,
 };
@@ -132,54 +132,50 @@ impl App {
             return iced::Subscription::none();
         };
 
-        let db_clone = connected_state.db.clone();
-
         let wallet = connected_state.wallet.clone();
 
-        let wallet_sub = iced::subscription::channel(
+        let db = connected_state.db.clone();
+
+        let wallet_sub = iced::Subscription::run_with_id(
             std::any::TypeId::of::<Wallet>(),
-            100,
-            |mut output| async move {
-                loop {
-                    let mut wallet_update_stream = wallet.get_update_stream();
+            // We're wrapping `stream` in a `stream!` macro to make it lazy (meaning `stream` isn't
+            // created unless the outer `stream!` is actually used). This is necessary because the
+            // outer `stream!` is created on every update, but will only be polled if the subscription
+            // ID is new.
+            async_stream::stream! {
+                let mut stream = wallet
+                    .get_update_stream()
+                    .map(|views| Message::UpdateFederationViews { views });
 
-                    while let Some(views) = wallet_update_stream.next().await {
-                        output
-                            .send(Message::UpdateFederationViews { views })
-                            .await
-                            .unwrap();
-                    }
+                while let Some(msg) = stream.next().await {
+                    yield msg;
                 }
             },
         );
 
-        let nip46_sub = iced::subscription::channel(
+        let nip46_sub = iced::Subscription::run_with_id(
             std::any::TypeId::of::<Nip46OverNip55ServerStream>(),
-            100,
-            |mut output| async move {
-                loop {
-                    let mut stream = Nip46OverNip55ServerStream::start(
-                        "/tmp/nip55-kind24133.sock",
-                        db_clone.clone(),
-                    )
-                    .unwrap();
+            // We're wrapping `stream` in a `stream!` macro to make it lazy (meaning `stream` isn't
+            // created unless the outer `stream!` is actually used). This is necessary because the
+            // outer `stream!` is created on every update, but will only be polled if the subscription
+            // ID is new.
+            async_stream::stream! {
+                let mut stream = Nip46OverNip55ServerStream::start("/tmp/nip55-kind24133.sock", db)
+                    .unwrap()
+                    .map(|(request_list, public_key, response_sender)| {
+                        Message::IncomingNip46Request(Arc::new((
+                            request_list,
+                            public_key,
+                            response_sender,
+                        )))
+                    });
 
-                    while let Some((request_list, public_key, response_sender)) =
-                        stream.next().await
-                    {
-                        output
-                            .send(Message::IncomingNip46Request(Arc::new((
-                                request_list,
-                                public_key,
-                                response_sender,
-                            ))))
-                            .await
-                            .unwrap();
-                    }
+                while let Some(msg) = stream.next().await {
+                    yield msg;
                 }
             },
         );
 
-        iced::subscription::Subscription::batch(vec![nip46_sub, wallet_sub])
+        iced::Subscription::batch(vec![nip46_sub, wallet_sub])
     }
 }

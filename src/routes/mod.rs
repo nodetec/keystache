@@ -203,7 +203,7 @@ impl Route {
                         ]
                         .spacing(20),
                     )
-                    .align_items(Alignment::Center)
+                    .align_x(Alignment::Center)
                     .into();
             }
         }
@@ -277,5 +277,5 @@ impl<T> Loadable<T> {
 fn container<'a>(title: &str) -> Column<'a, app::Message> {
     column![text(title.to_string()).size(35)]
         .spacing(20)
-        .align_items(iced::Alignment::Center)
+        .align_x(iced::Alignment::Center)
 }
