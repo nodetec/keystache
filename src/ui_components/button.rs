@@ -7,9 +7,9 @@ use iced::{
 };
 
 use crate::{
+    app,
     routes::RouteName,
     util::{darken, lighten},
-    Keystache, KeystacheMessage,
 };
 
 use super::{PaletteColor, SvgIcon};
@@ -18,7 +18,7 @@ pub fn icon_button(
     text_str: &str,
     icon: SvgIcon,
     palette_color: PaletteColor,
-) -> Button<'_, KeystacheMessage, Theme> {
+) -> Button<'_, app::Message, Theme> {
     // TODO: Find a way to darken the icon color when the button is disabled.
     let svg = icon.view(24.0, 24.0, Color::WHITE);
     let content = row![svg, text(text_str).size(24.0)]
@@ -64,9 +64,9 @@ pub fn sidebar_button<'a>(
     text_str: &'a str,
     icon: SvgIcon,
     self_route_name: &RouteName,
-    keystache: &Keystache,
-) -> Button<'a, KeystacheMessage, Theme> {
-    let is_active = self_route_name.is_same_top_level_route_as(&keystache.page.to_name());
+    app: &app::App,
+) -> Button<'a, app::Message, Theme> {
+    let is_active = self_route_name.is_same_top_level_route_as(&app.page.to_name());
 
     // TODO: Find a way to darken the icon color when the button is disabled.
     let svg = icon.view(24.0, 24.0, Color::WHITE);

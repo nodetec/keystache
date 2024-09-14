@@ -4,8 +4,9 @@ use iced::{
 };
 
 use crate::{
+    app,
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, KeystacheMessage,
+    ConnectedState,
 };
 
 use super::{container, RouteName};
@@ -29,7 +30,7 @@ pub struct Page {
 }
 
 impl Page {
-    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+    pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
             Message::ChangePasswordCurrentPasswordInputChanged(input) => {
                 if let Subroute::ChangePassword(change_password) = &mut self.subroute {
@@ -64,8 +65,8 @@ impl Page {
                 {
                     // TODO: Show success in UI.
 
-                    Task::done(KeystacheMessage::Navigate(RouteName::Settings(
-                        SubrouteName::Main,
+                    Task::done(app::Message::Routes(super::Message::Navigate(
+                        RouteName::Settings(SubrouteName::Main),
                     )))
                 } else {
                     // TODO: Show error in UI.
@@ -75,7 +76,7 @@ impl Page {
         }
     }
 
-    pub fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    pub fn view<'a>(&self) -> Column<'a, app::Message> {
         match &self.subroute {
             Subroute::Main(main) => main.view(),
             Subroute::ChangePassword(change_password) => change_password.view(),
@@ -126,11 +127,13 @@ pub struct Main {}
 impl Main {
     // TODO: Remove this clippy allow.
     #[allow(clippy::unused_self)]
-    fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self) -> Column<'a, app::Message> {
         container("Settings")
             .push(
                 icon_button("Change Password", SvgIcon::Lock, PaletteColor::Primary).on_press(
-                    KeystacheMessage::Navigate(RouteName::Settings(SubrouteName::ChangePassword)),
+                    app::Message::Routes(super::Message::Navigate(RouteName::Settings(
+                        SubrouteName::ChangePassword,
+                    ))),
                 ),
             )
             .push(icon_button(
@@ -140,7 +143,9 @@ impl Main {
             ))
             .push(
                 icon_button("About", SvgIcon::Info, PaletteColor::Primary).on_press(
-                    KeystacheMessage::Navigate(RouteName::Settings(SubrouteName::About)),
+                    app::Message::Routes(super::Message::Navigate(RouteName::Settings(
+                        SubrouteName::About,
+                    ))),
                 ),
             )
     }
@@ -157,14 +162,14 @@ pub struct ChangePassword {
 impl ChangePassword {
     // TODO: Remove this clippy allow.
     #[allow(clippy::unused_self)]
-    fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self) -> Column<'a, app::Message> {
         container("Change Password")
             .push(
                 text_input("Current Password", &self.current_password_input)
                     .on_input(|input| {
-                        KeystacheMessage::SettingsPage(
+                        app::Message::Routes(super::Message::SettingsPage(
                             Message::ChangePasswordCurrentPasswordInputChanged(input),
-                        )
+                        ))
                     })
                     .secure(true)
                     .padding(10)
@@ -173,9 +178,9 @@ impl ChangePassword {
             .push(
                 text_input("New Password", &self.new_password_input)
                     .on_input(|input| {
-                        KeystacheMessage::SettingsPage(
+                        app::Message::Routes(super::Message::SettingsPage(
                             Message::ChangePasswordNewPasswordInputChanged(input),
-                        )
+                        ))
                     })
                     .secure(true)
                     .padding(10)
@@ -187,9 +192,9 @@ impl ChangePassword {
                     &self.new_password_confirmation_input,
                 )
                 .on_input(|input| {
-                    KeystacheMessage::SettingsPage(
+                    app::Message::Routes(super::Message::SettingsPage(
                         Message::ChangePasswordNewPasswordConfirmationInputChanged(input),
-                    )
+                    ))
                 })
                 .secure(true)
                 .padding(10)
@@ -202,16 +207,20 @@ impl ChangePassword {
                             && !self.new_password_input.is_empty()
                             && self.new_password_input == self.new_password_confirmation_input)
                             .then(|| {
-                                KeystacheMessage::SettingsPage(Message::ChangePasswordSubmit {
-                                    current_password: self.current_password_input.clone(),
-                                    new_password: self.new_password_input.clone(),
-                                })
+                                app::Message::Routes(super::Message::SettingsPage(
+                                    Message::ChangePasswordSubmit {
+                                        current_password: self.current_password_input.clone(),
+                                        new_password: self.new_password_input.clone(),
+                                    },
+                                ))
                             }),
                     ),
             )
             .push(
                 icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    KeystacheMessage::Navigate(RouteName::Settings(SubrouteName::Main)),
+                    app::Message::Routes(super::Message::Navigate(RouteName::Settings(
+                        SubrouteName::Main,
+                    ))),
                 ),
             )
     }
@@ -222,7 +231,7 @@ pub struct About {}
 impl About {
     // TODO: Remove this clippy allow.
     #[allow(clippy::unused_self)]
-    fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self) -> Column<'a, app::Message> {
         container("About")
             .push(Text::new("Description").size(25))
             .push(Text::new("Keystache is a Nostr single-sign-on key management and Fedimint Bitcoin wallet created by Tommy Volk and generously funded by OpenSats").size(15))
@@ -231,7 +240,7 @@ impl About {
             .push(Text::new("Version").size(25))
             .push(Text::new(env!("CARGO_PKG_VERSION")).size(15))
             .push(icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                KeystacheMessage::Navigate(RouteName::Settings(SubrouteName::Main))
+                app::Message::Routes(super::Message::Navigate(RouteName::Settings(SubrouteName::Main)))
             ))
     }
 }

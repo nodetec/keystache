@@ -1,15 +1,13 @@
-use std::sync::Arc;
-
 use iced::{
     widget::{column, row, text, Column, Text},
     Alignment, Element, Task,
 };
-use nip_55::nip_46::Nip46RequestApproval;
 
 use crate::{
+    app,
     db::Database,
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, KeystacheMessage,
+    ConnectedState,
 };
 
 pub mod bitcoin_wallet;
@@ -18,6 +16,18 @@ pub mod nostr_keypairs;
 pub mod nostr_relays;
 pub mod settings;
 pub mod unlock;
+
+#[derive(Debug, Clone)]
+pub enum Message {
+    Navigate(RouteName),
+    NavigateHomeAndSetConnectedState(ConnectedState),
+
+    UnlockPage(unlock::Message),
+    NostrKeypairsPage(nostr_keypairs::Message),
+    NostrRelaysPage(nostr_relays::Message),
+    BitcoinWalletPage(bitcoin_wallet::Message),
+    SettingsPage(settings::Message),
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum RouteName {
@@ -77,11 +87,9 @@ impl Route {
         }
     }
 
-    // TODO: Remove this clippy allow.
-    #[allow(clippy::too_many_lines)]
-    pub fn update(&mut self, msg: KeystacheMessage) -> Task<KeystacheMessage> {
+    pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
-            KeystacheMessage::Navigate(route_name) => {
+            Message::Navigate(route_name) => {
                 let new_self_or = match route_name {
                     RouteName::Unlock => Some(Self::new_locked()),
                     RouteName::Home => self.get_connected_state().map(|connected_state| {
@@ -123,20 +131,20 @@ impl Route {
                     }
                 };
 
-                if let Some(new_self_or) = new_self_or {
-                    *self = new_self_or;
+                if let Some(new_self) = new_self_or {
+                    *self = new_self;
                 } else {
                     // TODO: Log warning that navigation failed.
                 }
 
                 Task::none()
             }
-            KeystacheMessage::NavigateHomeAndSetConnectedState(connected_state) => {
+            Message::NavigateHomeAndSetConnectedState(connected_state) => {
                 *self = Self::Home(home::Page { connected_state });
 
                 Task::none()
             }
-            KeystacheMessage::UnlockPage(unlock_message) => {
+            Message::UnlockPage(unlock_message) => {
                 if let Self::Unlock(unlock_page) = self {
                     unlock_page.update(unlock_message)
                 } else {
@@ -144,7 +152,7 @@ impl Route {
                     Task::none()
                 }
             }
-            KeystacheMessage::NostrKeypairsPage(nostr_keypairs_message) => {
+            Message::NostrKeypairsPage(nostr_keypairs_message) => {
                 if let Self::NostrKeypairs(nostr_keypairs_page) = self {
                     nostr_keypairs_page.update(nostr_keypairs_message)
                 } else {
@@ -152,7 +160,7 @@ impl Route {
                     Task::none()
                 }
             }
-            KeystacheMessage::NostrRelaysPage(nostr_relays_message) => {
+            Message::NostrRelaysPage(nostr_relays_message) => {
                 if let Self::NostrRelays(nostr_relays_page) = self {
                     nostr_relays_page.update(nostr_relays_message)
                 } else {
@@ -160,7 +168,7 @@ impl Route {
                     Task::none()
                 }
             }
-            KeystacheMessage::BitcoinWalletPage(bitcoin_wallet_message) => {
+            Message::BitcoinWalletPage(bitcoin_wallet_message) => {
                 if let Self::BitcoinWallet(bitcoin_wallet_page) = self {
                     bitcoin_wallet_page.update(bitcoin_wallet_message)
                 } else {
@@ -168,7 +176,7 @@ impl Route {
                     Task::none()
                 }
             }
-            KeystacheMessage::SettingsPage(settings_message) => {
+            Message::SettingsPage(settings_message) => {
                 if let Self::Settings(settings_page) = self {
                     settings_page.update(settings_message)
                 } else {
@@ -176,65 +184,10 @@ impl Route {
                     Task::none()
                 }
             }
-            KeystacheMessage::DbDeleteAllData => {
-                if let Self::Unlock(unlock::Page {
-                    db_already_exists, ..
-                }) = self
-                {
-                    Database::delete();
-                    *db_already_exists = false;
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::UpdateFederationViews { views } => {
-                if let Some(connected_state) = self.get_connected_state_mut() {
-                    connected_state.loadable_federation_views = Loadable::Loaded(views.clone());
-                }
-
-                if let Self::BitcoinWallet(bitcoin_wallet) = self {
-                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateFederationViews(views));
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::CopyStringToClipboard(text) => {
-                // TODO: Display a toast stating whether the copy succeeded or failed.
-                let _ = arboard::Clipboard::new().map(|mut clipboard| clipboard.set_text(text));
-
-                Task::none()
-            }
-            KeystacheMessage::IncomingNip46Request(data) => {
-                if let Some(connected_state) = self.get_connected_state_mut() {
-                    connected_state.in_flight_nip46_requests.push_back(data);
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::ApproveFirstIncomingNip46Request => {
-                if let Some(connected_state) = self.get_connected_state_mut() {
-                    if let Some(req) = connected_state.in_flight_nip46_requests.pop_front() {
-                        let req = Arc::try_unwrap(req).unwrap();
-                        req.2.send(Nip46RequestApproval::Approve).unwrap();
-                    }
-                }
-
-                Task::none()
-            }
-            KeystacheMessage::RejectFirstIncomingNip46Request => {
-                if let Some(connected_state) = self.get_connected_state_mut() {
-                    if let Some(req) = connected_state.in_flight_nip46_requests.pop_front() {
-                        let req = Arc::try_unwrap(req).unwrap();
-                        req.2.send(Nip46RequestApproval::Reject).unwrap();
-                    }
-                }
-
-                Task::none()
-            }
         }
     }
 
-    pub fn view(&self) -> Element<KeystacheMessage> {
+    pub fn view(&self) -> Element<app::Message> {
         // If there are any incoming NIP46 requests, display the first one over the rest of the UI.
         if let Some(connected_state) = self.get_connected_state() {
             if let Some(req) = connected_state.in_flight_nip46_requests.front() {
@@ -244,9 +197,9 @@ impl Route {
                     .push(
                         row![
                             icon_button("Approve", SvgIcon::ThumbUp, PaletteColor::Primary)
-                                .on_press(KeystacheMessage::ApproveFirstIncomingNip46Request),
+                                .on_press(app::Message::ApproveFirstIncomingNip46Request),
                             icon_button("Reject", SvgIcon::ThumbDown, PaletteColor::Primary)
-                                .on_press(KeystacheMessage::RejectFirstIncomingNip46Request),
+                                .on_press(app::Message::RejectFirstIncomingNip46Request),
                         ]
                         .spacing(20),
                     )
@@ -285,7 +238,7 @@ impl Route {
         }
     }
 
-    fn get_connected_state_mut(&mut self) -> Option<&mut ConnectedState> {
+    pub fn get_connected_state_mut(&mut self) -> Option<&mut ConnectedState> {
         match self {
             Self::Unlock { .. } => None,
             Self::Home(home::Page { connected_state }) => Some(connected_state),
@@ -321,7 +274,7 @@ impl<T> Loadable<T> {
     }
 }
 
-fn container<'a>(title: &str) -> Column<'a, KeystacheMessage> {
+fn container<'a>(title: &str) -> Column<'a, app::Message> {
     column![text(title.to_string()).size(35)]
         .spacing(20)
         .align_items(iced::Alignment::Center)

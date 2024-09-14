@@ -13,10 +13,11 @@ use iced::{
 };
 
 use crate::{
+    app,
     fedimint::FederationView,
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::{format_amount, lighten, truncate_text},
-    ConnectedState, KeystacheMessage,
+    ConnectedState,
 };
 
 use super::{container, Loadable, RouteName};
@@ -56,7 +57,7 @@ pub struct Page {
 impl Page {
     // TODO: Remove this clippy allow.
     #[allow(clippy::too_many_lines)]
-    pub fn update(&mut self, msg: Message) -> Task<KeystacheMessage> {
+    pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
             Message::JoinFederationInviteCodeInputChanged(new_federation_invite_code) => {
                 let Subroute::Add(Add {
@@ -80,18 +81,22 @@ impl Page {
                         async move {
                             match fedimint_api_client::download_from_invite_code(&invite_code).await
                             {
-                                Ok(config) => KeystacheMessage::BitcoinWalletPage(
-                                    Message::LoadedFederationConfigFromInviteCode {
-                                        config_invite_code: invite_code,
-                                        config,
-                                    },
-                                ),
+                                Ok(config) => {
+                                    app::Message::Routes(super::Message::BitcoinWalletPage(
+                                        Message::LoadedFederationConfigFromInviteCode {
+                                            config_invite_code: invite_code,
+                                            config,
+                                        },
+                                    ))
+                                }
                                 // TODO: Include error in message and display it in the UI.
-                                Err(_err) => KeystacheMessage::BitcoinWalletPage(
-                                    Message::FailedToLoadFederationConfigFromInviteCode {
-                                        config_invite_code: invite_code,
-                                    },
-                                ),
+                                Err(_err) => {
+                                    app::Message::Routes(super::Message::BitcoinWalletPage(
+                                        Message::FailedToLoadFederationConfigFromInviteCode {
+                                            config_invite_code: invite_code,
+                                        },
+                                    ))
+                                }
                             }
                         },
                         |msg| msg,
@@ -157,7 +162,9 @@ impl Page {
 
                 Task::future(async move {
                     wallet.join_federation(invite_code).await.unwrap();
-                    KeystacheMessage::BitcoinWalletPage(Message::ConnectedToFederation)
+                    app::Message::Routes(super::Message::BitcoinWalletPage(
+                        Message::ConnectedToFederation,
+                    ))
                 })
             }
             Message::ConnectedToFederation => {
@@ -196,7 +203,7 @@ impl Page {
         }
     }
 
-    pub fn view(&self) -> Column<KeystacheMessage> {
+    pub fn view(&self) -> Column<app::Message> {
         match &self.subroute {
             Subroute::List(list) => list.view(&self.connected_state),
             Subroute::FederationDetails(federation_details) => federation_details.view(),
@@ -262,7 +269,7 @@ pub struct List {}
 impl List {
     // TODO: Remove this clippy allow.
     #[allow(clippy::unused_self)]
-    fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, app::Message> {
         let mut container = container("Wallet");
 
         match &connected_state.loadable_federation_views {
@@ -280,14 +287,14 @@ impl List {
                     ))))
                     .push(row![
                         icon_button("Send", SvgIcon::ArrowUpward, PaletteColor::Primary).on_press(
-                            KeystacheMessage::Navigate(RouteName::BitcoinWallet(
-                                SubrouteName::Send,
+                            app::Message::Routes(super::Message::Navigate(
+                                RouteName::BitcoinWallet(SubrouteName::Send)
                             ))
                         ),
                         Space::with_width(10.0),
                         icon_button("Receive", SvgIcon::ArrowDownward, PaletteColor::Primary)
-                            .on_press(KeystacheMessage::Navigate(RouteName::BitcoinWallet(
-                                SubrouteName::Receive,
+                            .on_press(app::Message::Routes(super::Message::Navigate(
+                                RouteName::BitcoinWallet(SubrouteName::Receive)
                             )))
                     ])
                     .push(Text::new("Federations").size(25));
@@ -309,8 +316,10 @@ impl List {
                             column,
                             horizontal_space(),
                             icon_button("Details", SvgIcon::ChevronRight, PaletteColor::Background)
-                                .on_press(KeystacheMessage::Navigate(RouteName::BitcoinWallet(
-                                    SubrouteName::FederationDetails(view.clone()),
+                                .on_press(app::Message::Routes(super::Message::Navigate(
+                                    RouteName::BitcoinWallet(SubrouteName::FederationDetails(
+                                        view.clone()
+                                    ))
                                 )))
                         ])
                         .padding(10)
@@ -338,7 +347,9 @@ impl List {
 
         container = container.push(
             icon_button("Join Federation", SvgIcon::Add, PaletteColor::Primary).on_press(
-                KeystacheMessage::Navigate(RouteName::BitcoinWallet(SubrouteName::Add)),
+                app::Message::Routes(super::Message::Navigate(RouteName::BitcoinWallet(
+                    SubrouteName::Add,
+                ))),
             ),
         );
 
@@ -351,7 +362,7 @@ pub struct FederationDetails {
 }
 
 impl FederationDetails {
-    fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self) -> Column<'a, app::Message> {
         let mut container = container("Federation Details")
             .push(
                 Text::new(
@@ -413,7 +424,9 @@ impl FederationDetails {
 
         container = container.push(
             icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                KeystacheMessage::Navigate(RouteName::BitcoinWallet(SubrouteName::List)),
+                app::Message::Routes(super::Message::Navigate(RouteName::BitcoinWallet(
+                    SubrouteName::List,
+                ))),
             ),
         );
 
@@ -432,14 +445,14 @@ pub struct ParsedFederationInviteCodeState {
 }
 
 impl Add {
-    fn view<'a>(&self) -> Column<'a, KeystacheMessage> {
+    fn view<'a>(&self) -> Column<'a, app::Message> {
         let mut container = container("Add Keypair")
             .push(
                 text_input("Federation Invite Code", &self.federation_invite_code)
                     .on_input(|input| {
-                        KeystacheMessage::BitcoinWalletPage(
+                        app::Message::Routes(super::Message::BitcoinWalletPage(
                             Message::JoinFederationInviteCodeInputChanged(input),
-                        )
+                        ))
                     })
                     .padding(10)
                     .size(30),
@@ -448,8 +461,10 @@ impl Add {
                 icon_button("Join Federation", SvgIcon::Groups, PaletteColor::Primary)
                     .on_press_maybe(self.parsed_federation_invite_code_state_or.as_ref().map(
                         |parsed_federation_invite_code_state| {
-                            KeystacheMessage::BitcoinWalletPage(Message::JoinFedimintFederation(
-                                parsed_federation_invite_code_state.invite_code.clone(),
+                            app::Message::Routes(super::Message::BitcoinWalletPage(
+                                Message::JoinFedimintFederation(
+                                    parsed_federation_invite_code_state.invite_code.clone(),
+                                ),
                             ))
                         },
                     )),
@@ -506,7 +521,9 @@ impl Add {
 
         container = container.push(
             icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                KeystacheMessage::Navigate(RouteName::BitcoinWallet(SubrouteName::List)),
+                app::Message::Routes(super::Message::Navigate(RouteName::BitcoinWallet(
+                    SubrouteName::List,
+                ))),
             ),
         );
 
