@@ -136,52 +136,49 @@ impl Page {
                 .map(|selected_federation| (invoice, selected_federation.federation_id))
         });
 
-        container = container
-            .push(
-                text_input("Lightning Invoice", &self.lightning_invoice_input)
-                    .on_input(|input| {
-                        app::Message::Routes(routes::Message::BitcoinWalletPage(
-                            super::Message::Send(Message::LightningInvoiceInputChanged(input)),
-                        ))
-                    })
-                    .padding(10)
-                    .size(30),
-            )
-            .push(combo_box(
-                &self.federation_combo_box_state,
-                "Federation to pay from",
-                self.federation_combo_box_selected_federation.as_ref(),
-                Self::on_combo_box_change,
-            ))
-            .push(
-                icon_button("Pay Invoice", SvgIcon::Send, PaletteColor::Primary).on_press_maybe(
-                    parsed_invoice_and_selected_federation_id_or.map(|(invoice, federation_id)| {
-                        app::Message::Routes(routes::Message::BitcoinWalletPage(
-                            super::Message::Send(Message::PayInvoice(invoice, federation_id)),
-                        ))
-                    }),
+        container = match &self.loadable_invoice_payment_or {
+            Some(Loadable::Loading) => container.push(Text::new("Loading...")),
+            Some(Loadable::Loaded(())) => container.push(Text::new("Payment successful!")),
+            Some(Loadable::Failed) => container.push(Text::new("Payment failed")),
+            None => container
+                .push(
+                    text_input("Lightning Invoice", &self.lightning_invoice_input)
+                        .on_input(|input| {
+                            app::Message::Routes(routes::Message::BitcoinWalletPage(
+                                super::Message::Send(Message::LightningInvoiceInputChanged(input)),
+                            ))
+                        })
+                        .padding(10)
+                        .size(30),
+                )
+                .push(combo_box(
+                    &self.federation_combo_box_state,
+                    "Federation to pay from",
+                    self.federation_combo_box_selected_federation.as_ref(),
+                    Self::on_combo_box_change,
+                ))
+                .push(
+                    icon_button("Pay Invoice", SvgIcon::Send, PaletteColor::Primary)
+                        .on_press_maybe(parsed_invoice_and_selected_federation_id_or.map(
+                            |(invoice, federation_id)| {
+                                app::Message::Routes(routes::Message::BitcoinWalletPage(
+                                    super::Message::Send(Message::PayInvoice(
+                                        invoice,
+                                        federation_id,
+                                    )),
+                                ))
+                            },
+                        )),
                 ),
-            )
-            .push(
-                icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
-                    app::Message::Routes(routes::Message::Navigate(RouteName::BitcoinWallet(
-                        SubrouteName::List,
-                    ))),
-                ),
-            );
+        };
 
-        match &self.loadable_invoice_payment_or {
-            Some(Loadable::Loading) => {
-                container = container.push(Text::new("Loading..."));
-            }
-            Some(Loadable::Loaded(())) => {
-                container = container.push(Text::new("Payment successful!"));
-            }
-            Some(Loadable::Failed) => {
-                container = container.push(Text::new("Payment failed"));
-            }
-            None => {}
-        }
+        container = container.push(
+            icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
+                app::Message::Routes(routes::Message::Navigate(RouteName::BitcoinWallet(
+                    SubrouteName::List,
+                ))),
+            ),
+        );
 
         container
     }
