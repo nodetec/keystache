@@ -199,30 +199,6 @@ impl Page {
                 .map(|selected_federation| (invoice, selected_federation.federation_id))
         });
 
-        container = container
-            .push(
-                text_input("Amount to receive", &self.amount_input)
-                    .on_input(|input| {
-                        app::Message::Routes(routes::Message::BitcoinWalletPage(
-                            super::Message::Receive(Message::AmountInputChanged(input)),
-                        ))
-                    })
-                    .padding(10)
-                    .size(30),
-            )
-            .push(combo_box(
-                &self.denomination_combo_box_state,
-                "Denomination",
-                self.denomination_combo_box_selected_denomination.as_ref(),
-                Self::on_denomination_combo_box_change,
-            ))
-            .push(combo_box(
-                &self.federation_combo_box_state,
-                "Federation to receive to",
-                self.federation_combo_box_selected_federation.as_ref(),
-                Self::on_federation_combo_box_change,
-            ));
-
         container = if let Some(loadable_lightning_invoice_data) =
             &self.loadable_lightning_invoice_data_or
         {
@@ -247,15 +223,42 @@ impl Page {
                 Loadable::Failed => container.push(Text::new("Failed to create invoice")),
             }
         } else {
-            container.push(
-                icon_button("Create Invoice", SvgIcon::Send, PaletteColor::Primary).on_press_maybe(
-                    parsed_amount_and_selected_federation_id_or.map(|(amount, federation_id)| {
-                        app::Message::Routes(routes::Message::BitcoinWalletPage(
-                            super::Message::Receive(Message::CreateInvoice(amount, federation_id)),
-                        ))
-                    }),
-                ),
-            )
+            container
+                .push(
+                    text_input("Amount to receive", &self.amount_input)
+                        .on_input(|input| {
+                            app::Message::Routes(routes::Message::BitcoinWalletPage(
+                                super::Message::Receive(Message::AmountInputChanged(input)),
+                            ))
+                        })
+                        .padding(10)
+                        .size(30),
+                )
+                .push(combo_box(
+                    &self.denomination_combo_box_state,
+                    "Denomination",
+                    self.denomination_combo_box_selected_denomination.as_ref(),
+                    Self::on_denomination_combo_box_change,
+                ))
+                .push(combo_box(
+                    &self.federation_combo_box_state,
+                    "Federation to receive to",
+                    self.federation_combo_box_selected_federation.as_ref(),
+                    Self::on_federation_combo_box_change,
+                ))
+                .push(
+                    icon_button("Create Invoice", SvgIcon::Send, PaletteColor::Primary)
+                        .on_press_maybe(parsed_amount_and_selected_federation_id_or.map(
+                            |(amount, federation_id)| {
+                                app::Message::Routes(routes::Message::BitcoinWalletPage(
+                                    super::Message::Receive(Message::CreateInvoice(
+                                        amount,
+                                        federation_id,
+                                    )),
+                                ))
+                            },
+                        )),
+                )
         };
 
         container = container.push(
