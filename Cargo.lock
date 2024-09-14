@@ -3238,6 +3238,7 @@ dependencies = [
  "secp256k1 0.28.2",
  "tempfile",
  "tokio",
+ "tokio-stream",
  "tracing-subscriber",
 ]
 

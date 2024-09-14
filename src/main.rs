@@ -53,7 +53,7 @@ fn main() -> iced::Result {
             level: iced::window::Level::Normal,
             icon: None,                                     // TODO: Set icon.
             platform_specific: PlatformSpecific::default(), // TODO: Set platform specific settings for each platform.
-            exit_on_close_request: true,
+            exit_on_close_request: false,
         })
         .run()
 }

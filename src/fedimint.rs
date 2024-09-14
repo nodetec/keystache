@@ -85,29 +85,16 @@ impl Wallet {
     ) -> Pin<Box<dyn iced::futures::Stream<Item = BTreeMap<FederationId, FederationView>> + Send>>
     {
         let clients = self.clients.clone();
-        Box::pin(async_stream::stream! {
-            let mut last_state_or = None;
-            loop {
-                let current_state = Self::get_current_state(clients.lock().await).await;
 
-                // Ignoring clippy lint here since the `match` provides better clarity.
-                #[allow(clippy::option_if_let_else)]
-                let has_changed = match &last_state_or {
-                    Some(last_state) => {
-                        &current_state != last_state
-                    }
-                    // If there was no last state, the state has changed.
-                    None => true,
-                };
-
-                if has_changed {
-                    last_state_or = Some(current_state.clone());
-                    yield current_state;
-                }
-
-                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-            }
-        })
+        Box::pin(
+            tokio_stream::wrappers::IntervalStream::new(tokio::time::interval(
+                std::time::Duration::from_secs(1),
+            ))
+            .then(move |_| {
+                let clients = clients.clone();
+                async move { Self::get_current_state(clients.lock().await).await }
+            }),
+        )
     }
 
     pub async fn connect_to_joined_federations(&self) -> anyhow::Result<()> {
