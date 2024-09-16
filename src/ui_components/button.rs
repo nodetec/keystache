@@ -22,7 +22,7 @@ pub fn icon_button(
     // TODO: Find a way to darken the icon color when the button is disabled.
     let svg = icon.view(24.0, 24.0, Color::WHITE);
     let content = row![svg, text(text_str).size(24.0)]
-        .align_items(iced::Alignment::Center)
+        .align_y(iced::Alignment::Center)
         .spacing(8)
         .padding(8);
 
@@ -71,7 +71,7 @@ pub fn sidebar_button<'a>(
     // TODO: Find a way to darken the icon color when the button is disabled.
     let svg = icon.view(24.0, 24.0, Color::WHITE);
     let content = row![svg, text(text_str).size(24.0)]
-        .align_items(iced::Alignment::Center)
+        .align_y(iced::Alignment::Center)
         .spacing(8)
         .padding(8);
 

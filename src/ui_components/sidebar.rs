@@ -54,7 +54,7 @@ pub fn sidebar(keystache: &app::App) -> Element<app::Message> {
             ))),
         ]
         .spacing(8)
-        .align_items(Alignment::Start),
+        .align_x(Alignment::Start),
     )
     .padding(8)
     .style(|theme| -> Style {

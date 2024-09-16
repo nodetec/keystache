@@ -28,7 +28,7 @@ fedimint-ln-client = "0.4.0"
 fedimint-ln-common = "0.4.0"
 fedimint-mint-client = "0.4.0"
 fedimint-rocksdb = "0.4.0"
-iced = { git = "https://github.com/iced-rs/iced", rev = "e50aa03", features = [
+iced = { git = "https://github.com/iced-rs/iced", rev = "8fb939b", features = [
     "advanced",
     "qr_code",
     "svg",

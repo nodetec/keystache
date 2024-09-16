@@ -121,7 +121,7 @@ impl List {
             container = container.push(row![
                 Text::new(truncate_text(&public_key, 12, true))
                     .size(20)
-                    .horizontal_alignment(iced::alignment::Horizontal::Center),
+                    .align_x(iced::alignment::Horizontal::Center),
                 icon_button("Delete", SvgIcon::Delete, PaletteColor::Danger).on_press(
                     app::Message::Routes(super::Message::NostrKeypairsPage(
                         Message::DeleteKeypair { public_key }
