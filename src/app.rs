@@ -72,10 +72,10 @@ impl App {
                 }
 
                 if let Route::BitcoinWallet(bitcoin_wallet) = &mut self.page {
-                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateFederationViews(views));
+                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateFederationViews(views))
+                } else {
+                    Task::none()
                 }
-
-                Task::none()
             }
             Message::CopyStringToClipboard(text) => {
                 // TODO: Display a toast stating whether the copy succeeded or failed.

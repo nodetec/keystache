@@ -186,20 +186,15 @@ impl Page {
                     Task::none()
                 }
             }
-            Message::UpdateFederationViews(federation_views) => {
-                match &mut self.subroute {
-                    Subroute::Send(send_page) => {
-                        send_page.update(send::Message::UpdateFederationViews(federation_views));
-                    }
-                    Subroute::Receive(receive_page) => {
-                        receive_page
-                            .update(receive::Message::UpdateFederationViews(federation_views));
-                    }
-                    _ => {}
+            Message::UpdateFederationViews(federation_views) => match &mut self.subroute {
+                Subroute::Send(send_page) => {
+                    send_page.update(send::Message::UpdateFederationViews(federation_views))
                 }
-
-                Task::none()
-            }
+                Subroute::Receive(receive_page) => {
+                    receive_page.update(receive::Message::UpdateFederationViews(federation_views))
+                }
+                _ => Task::none(),
+            },
         }
     }
 
