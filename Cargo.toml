@@ -12,22 +12,22 @@ icon = ["assets/app_icons/**/*.png"]
 resources = ["assets/fonts/**/*.*"]
 
 [dependencies]
-anyhow = "1.0.87"
-arboard = { version = "3.4.0", default-features = false }
+anyhow = "1.0.89"
+arboard = { version = "3.4.1", default-features = false }
 async-stream = "0.3.5"
 async-trait = "0.1.82"
 chrono = { version = "0.4.38", features = ["alloc"] }
 diesel = { version = "2.2.4", features = ["sqlite", "chrono"] }
 diesel_migrations = { version = "2.2.0", features = ["sqlite"] }
 directories = "5.0.1"
-fedimint-api-client = "0.4.0"
-fedimint-bip39 = "0.4.0"
-fedimint-client = "0.4.0"
-fedimint-core = "0.4.0"
-fedimint-ln-client = "0.4.0"
-fedimint-ln-common = "0.4.0"
-fedimint-mint-client = "0.4.0"
-fedimint-rocksdb = "0.4.0"
+fedimint-api-client = "0.4.2"
+fedimint-bip39 = "0.4.2"
+fedimint-client = "0.4.2"
+fedimint-core = "0.4.2"
+fedimint-ln-client = "0.4.2"
+fedimint-ln-common = "0.4.2"
+fedimint-mint-client = "0.4.2"
+fedimint-rocksdb = "0.4.2"
 iced = { version = "0.13.1", features = [
     "advanced",
     "qr_code",
