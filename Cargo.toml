@@ -36,10 +36,10 @@ iced = { version = "0.13.1", features = [
 ] }
 libsqlite3-sys = { version = "0.30.1", features = ["bundled-sqlcipher"] }
 lightning-invoice = "0.31.0"
-nip-55 = "0.6.1"
-nostr-sdk = "0.30.0"
+nip-55 = "0.7.0"
+nostr-sdk = "0.35.0"
 palette = "0.7.6"
-secp256k1 = { version = "0.28.2", features = ["global-context"] }
+secp256k1 = { version = "0.29.1", features = ["global-context"] }
 tokio = "1.40.0"
 tracing-subscriber = "0.3.18"
 
