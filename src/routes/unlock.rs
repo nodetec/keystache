@@ -10,6 +10,7 @@ use nostr_sdk::bitcoin::{bip32::Xpriv, Network};
 use crate::{
     app,
     db::Database,
+    nostr::{NostrModule, NostrModuleMessage, NostrState},
     ui_components::{icon_button, PaletteColor, SvgIcon},
     ConnectedState, Wallet,
 };
@@ -73,14 +74,29 @@ impl Page {
                             wallet_clone.connect_to_joined_federations().await.unwrap();
                         });
 
-                        Task::done(app::Message::Routes(
+                        let nostr_module = NostrModule::new();
+
+                        // TODO: Add pagination.
+                        let relays = db.list_relays(999, 0).unwrap();
+
+                        let mut task = Task::done(app::Message::Routes(
                             super::Message::NavigateHomeAndSetConnectedState(ConnectedState {
                                 db,
                                 wallet,
                                 in_flight_nip46_requests: VecDeque::new(),
                                 loadable_federation_views: Loadable::Loading,
+                                nostr_module,
+                                nostr_state: NostrState::default(),
                             }),
-                        ))
+                        ));
+
+                        for relay in relays {
+                            task = task.chain(Task::done(app::Message::NostrModule(
+                                NostrModuleMessage::ConnectToRelay(relay.websocket_url),
+                            )));
+                        }
+
+                        task
                     },
                 )
             }

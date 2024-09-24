@@ -3271,6 +3271,7 @@ dependencies = [
  "libsqlite3-sys",
  "lightning-invoice",
  "nip-55",
+ "nostr-relay-pool",
  "nostr-sdk",
  "palette",
  "secp256k1 0.29.1",

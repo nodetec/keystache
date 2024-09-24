@@ -6,6 +6,8 @@ use iced::{
     Color, Theme,
 };
 
+const CIRCLE_SVG_BYTES: &[u8] = "<svg xmlns=\"http://www.w3.org/2000/svg\" height=\"24px\" width=\"24px\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"40\" fill=\"black\" /></svg>".as_bytes();
+
 #[derive(Clone, Copy)]
 pub enum SvgIcon {
     Add,
@@ -14,6 +16,7 @@ pub enum SvgIcon {
     ArrowUpward,
     Casino,
     ChevronRight,
+    Circle,
     ContentCopy,
     CurrencyBitcoin,
     Delete,
@@ -50,6 +53,7 @@ impl SvgIcon {
             Self::ArrowUpward => icon_handle!("arrow_upward.svg"),
             Self::Casino => icon_handle!("casino.svg"),
             Self::ChevronRight => icon_handle!("chevron_right.svg"),
+            Self::Circle => Svg::new(Handle::from_memory(CIRCLE_SVG_BYTES)),
             Self::ContentCopy => icon_handle!("content_copy.svg"),
             Self::CurrencyBitcoin => icon_handle!("currency_bitcoin.svg"),
             Self::Delete => icon_handle!("delete.svg"),
