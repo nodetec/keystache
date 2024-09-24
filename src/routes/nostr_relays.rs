@@ -1,10 +1,15 @@
+use std::str::FromStr;
+
 use iced::{
     widget::{row, text_input, Column, Text},
-    Task,
+    Color, Task,
 };
+use nostr_relay_pool::RelayStatus;
+use nostr_sdk::Url;
 
 use crate::{
     app,
+    nostr::NostrModuleMessage,
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::truncate_text,
     ConnectedState,
@@ -29,7 +34,10 @@ impl Page {
         match msg {
             Message::SaveRelay { websocket_url } => {
                 // TODO: Surface this error to the UI.
-                let _ = self.connected_state.db.save_relay(websocket_url);
+                let _ = self.connected_state.db.save_relay(websocket_url.clone());
+                self.connected_state
+                    .nostr_module
+                    .update(NostrModuleMessage::ConnectToRelay(websocket_url));
 
                 Task::none()
             }
@@ -43,6 +51,9 @@ impl Page {
             Message::DeleteRelay { websocket_url } => {
                 // TODO: Surface this error to the UI.
                 _ = self.connected_state.db.remove_relay(&websocket_url);
+                self.connected_state
+                    .nostr_module
+                    .update(NostrModuleMessage::DisconnectFromRelay(websocket_url));
 
                 Task::none()
             }
@@ -102,6 +113,24 @@ impl List {
         let mut container = container("Relays");
 
         for relay in relays {
+            let relay_state_or = Url::from_str(&relay.websocket_url).map_or(None, |url| {
+                connected_state.nostr_state.relay_connections.get(&url)
+            });
+
+            let relay_connection_color = relay_state_or.map_or_else(
+                || Color::from_rgb(0.3, 0.3, 0.3),
+                |relay_status| match relay_status {
+                    RelayStatus::Initialized => Color::from_rgb(0.3, 0.3, 0.3),
+                    RelayStatus::Pending | RelayStatus::Connecting => {
+                        Color::from_rgb(0.8, 0.8, 0.0)
+                    }
+                    RelayStatus::Connected => Color::from_rgb(0.0, 0.8, 0.0),
+                    RelayStatus::Disconnected | RelayStatus::Terminated => {
+                        Color::from_rgb(0.8, 0.0, 0.0)
+                    }
+                },
+            );
+
             container = container.push(row![
                 Text::new(truncate_text(&relay.websocket_url, 12, true))
                     .size(20)
@@ -111,6 +140,7 @@ impl List {
                         websocket_url: relay.websocket_url
                     }))
                 ),
+                SvgIcon::Circle.view(24.0, 24.0, relay_connection_color),
             ]);
         }
 

@@ -8,6 +8,7 @@
 mod app;
 mod db;
 mod fedimint;
+mod nostr;
 mod routes;
 mod ui_components;
 mod util;
@@ -26,6 +27,7 @@ use iced::window::settings::PlatformSpecific;
 use iced::window::Settings;
 use iced::Size;
 use nip_55::nip_46::Nip46RequestApproval;
+use nostr::{NostrModule, NostrState};
 use nostr_sdk::PublicKey;
 use routes::Loadable;
 
@@ -71,6 +73,8 @@ struct ConnectedState {
         )>,
     >,
     loadable_federation_views: Loadable<BTreeMap<FederationId, FederationView>>,
+    nostr_module: NostrModule,
+    nostr_state: NostrState,
 }
 
 // TODO: Clean up this implementation.

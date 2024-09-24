@@ -12,6 +12,7 @@ use nostr_sdk::PublicKey;
 use crate::{
     db::Database,
     fedimint::{FederationView, Wallet},
+    nostr::{NostrModuleMessage, NostrState},
     routes::{self, bitcoin_wallet, unlock, Loadable, Route, RouteName},
     ui_components::sidebar,
 };
@@ -25,6 +26,9 @@ pub enum Message {
     UpdateFederationViews {
         views: BTreeMap<FederationId, FederationView>,
     },
+
+    NostrModule(NostrModuleMessage),
+    UpdateNostrState(NostrState),
 
     CopyStringToClipboard(String),
 
@@ -76,6 +80,20 @@ impl App {
                 } else {
                     Task::none()
                 }
+            }
+            Message::NostrModule(nostr_module_message) => {
+                if let Some(connected_state) = self.page.get_connected_state_mut() {
+                    connected_state.nostr_module.update(nostr_module_message);
+                }
+
+                Task::none()
+            }
+            Message::UpdateNostrState(nostr_state) => {
+                if let Some(connected_state) = self.page.get_connected_state_mut() {
+                    connected_state.nostr_state = nostr_state;
+                }
+
+                Task::none()
             }
             Message::CopyStringToClipboard(text) => {
                 // TODO: Display a toast stating whether the copy succeeded or failed.
@@ -176,6 +194,11 @@ impl App {
             },
         );
 
-        iced::Subscription::batch(vec![nip46_sub, wallet_sub])
+        let nostr_sub = connected_state
+            .nostr_module
+            .subscription()
+            .map(Message::UpdateNostrState);
+
+        iced::Subscription::batch(vec![nip46_sub, wallet_sub, nostr_sub])
     }
 }
