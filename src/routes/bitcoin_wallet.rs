@@ -33,7 +33,7 @@ pub enum Message {
         // The invite code that was used to load the federation config.
         config_invite_code: InviteCode,
         // The loaded federation config.
-        config: fedimint_core::config::ClientConfig,
+        config: ClientConfig,
     },
     FailedToLoadFederationConfigFromInviteCode {
         // The invite code that was used to attempt to load the federation config.
@@ -273,13 +273,15 @@ impl List {
             }
             Loadable::Loaded(views) => {
                 container = container
-                    .push(Text::new("Total Balance").size(25))
-                    .push(Text::new(format_amount(Amount::from_msats(
-                        views
-                            .iter()
-                            .map(|(_federation_id, view)| view.balance.msats)
-                            .sum::<u64>(),
-                    ))))
+                    .push(
+                        Text::new(format_amount(Amount::from_msats(
+                            views
+                                .iter()
+                                .map(|(_federation_id, view)| view.balance.msats)
+                                .sum::<u64>(),
+                        )))
+                        .size(35),
+                    )
                     .push(row![
                         icon_button("Send", SvgIcon::ArrowUpward, PaletteColor::Primary).on_press(
                             app::Message::Routes(super::Message::Navigate(
@@ -441,7 +443,7 @@ pub struct ParsedFederationInviteCodeState {
 
 impl Add {
     fn view<'a>(&self) -> Column<'a, app::Message> {
-        let mut container = container("Add Keypair")
+        let mut container = container("Join Federation")
             .push(
                 text_input("Federation Invite Code", &self.federation_invite_code)
                     .on_input(|input| {
