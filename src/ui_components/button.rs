@@ -108,5 +108,5 @@ pub fn sidebar_button<'a>(
                 shadow: Shadow::default(),
             }
         })
-        .width(Length::Fixed(192.0))
+        .width(Length::Fixed(151.0))
 }
