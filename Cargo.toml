@@ -1,6 +1,6 @@
 [package]
 name = "keystache"
-version = "0.1.0-alpha"
+version = "0.1.0-beta-dev"
 description = "A Nostr key management app for desktop"
 authors = ["The Node-Tec Team"]
 edition = "2021"
