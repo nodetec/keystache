@@ -40,7 +40,7 @@ pub enum Message {
         config_invite_code: InviteCode,
     },
 
-    JoinFedimintFederation(InviteCode),
+    JoinFederation(InviteCode),
     ConnectedToFederation,
 
     Send(send::Message),
@@ -157,7 +157,7 @@ impl Page {
 
                 Task::none()
             }
-            Message::JoinFedimintFederation(invite_code) => {
+            Message::JoinFederation(invite_code) => {
                 let wallet = self.connected_state.wallet.clone();
 
                 Task::future(async move {
@@ -459,7 +459,7 @@ impl Add {
                     .on_press_maybe(self.parsed_federation_invite_code_state_or.as_ref().map(
                         |parsed_federation_invite_code_state| {
                             app::Message::Routes(super::Message::BitcoinWalletPage(
-                                Message::JoinFedimintFederation(
+                                Message::JoinFederation(
                                     parsed_federation_invite_code_state.invite_code.clone(),
                                 ),
                             ))
