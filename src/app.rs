@@ -23,9 +23,7 @@ pub enum Message {
 
     DbDeleteAllData,
 
-    UpdateFederationViews {
-        views: BTreeMap<FederationId, FederationView>,
-    },
+    UpdateFederationViews(BTreeMap<FederationId, FederationView>),
 
     NostrModule(NostrModuleMessage),
     UpdateNostrState(NostrState),
@@ -70,13 +68,16 @@ impl App {
 
                 Task::none()
             }
-            Message::UpdateFederationViews { views } => {
+            Message::UpdateFederationViews(federation_views) => {
                 if let Some(connected_state) = self.page.get_connected_state_mut() {
-                    connected_state.loadable_federation_views = Loadable::Loaded(views.clone());
+                    connected_state.loadable_federation_views =
+                        Loadable::Loaded(federation_views.clone());
                 }
 
                 if let Route::BitcoinWallet(bitcoin_wallet) = &mut self.page {
-                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateFederationViews(views))
+                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateFederationViews(
+                        federation_views,
+                    ))
                 } else {
                     Task::none()
                 }
@@ -163,7 +164,7 @@ impl App {
             async_stream::stream! {
                 let mut stream = wallet
                     .get_update_stream()
-                    .map(|views| Message::UpdateFederationViews { views });
+                    .map(Message::UpdateFederationViews);
 
                 while let Some(msg) = stream.next().await {
                     yield msg;
