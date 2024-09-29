@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use fedimint_core::{
-    config::{ClientConfig, META_FEDERATION_NAME_KEY},
+    config::{ClientConfig, FederationId, META_FEDERATION_NAME_KEY},
     invite_code::InviteCode,
     Amount,
 };
@@ -41,6 +41,9 @@ pub enum Message {
 
     JoinFederation(InviteCode),
     JoinedFederation(InviteCode),
+
+    LeaveFederation(FederationId),
+    LeftFederation(FederationId),
 
     Send(send::Message),
     Receive(receive::Message),
@@ -191,6 +194,44 @@ impl Page {
                                 RouteName::BitcoinWallet(SubrouteName::List),
                             )));
                         }
+                    }
+                }
+
+                Task::none()
+            }
+            Message::LeaveFederation(federation_id) => {
+                let wallet = self.connected_state.wallet.clone();
+
+                Task::stream(async_stream::stream! {
+                    match wallet.leave_federation(federation_id).await {
+                        Ok(()) => {
+                            yield app::Message::AddToast(Toast {
+                                title: "Left federation".to_string(),
+                                body: "You have successfully left the federation.".to_string(),
+                                status: ToastStatus::Good,
+                            });
+
+                            yield app::Message::Routes(super::Message::BitcoinWalletPage(
+                                Message::LeftFederation(federation_id)
+                            ));
+                        }
+                        Err(err) => {
+                            yield app::Message::AddToast(Toast {
+                                title: "Failed to leave federation".to_string(),
+                                body: format!("Failed to leave the federation: {err}"),
+                                status: ToastStatus::Bad,
+                            });
+                        }
+                    }
+                })
+            }
+            Message::LeftFederation(federation_id) => {
+                // A verbose way of saying "if the user is currently on the FederationDetails page and the federation ID matches the one that was just left, navigate back to the List page".
+                if let Subroute::FederationDetails(federation_details) = &self.subroute {
+                    if federation_details.view.federation_id == federation_id {
+                        return Task::done(app::Message::Routes(super::Message::Navigate(
+                            RouteName::BitcoinWallet(SubrouteName::List),
+                        )));
                     }
                 }
 
@@ -443,6 +484,27 @@ impl FederationDetails {
                     }),
             );
         }
+
+        // TODO: Add a function to `Wallet` to check whether we can safely leave a federation.
+        // Call it here rather and get rid of `has_zero_balance`.
+        let has_zero_balance = self.view.balance.msats == 0;
+
+        if !has_zero_balance {
+            container = container.push(
+                Text::new("Must have a zero balance in this federation in order to leave.")
+                    .size(20),
+            );
+        }
+
+        container = container.push(
+            icon_button("Leave Federation", SvgIcon::Delete, PaletteColor::Danger).on_press_maybe(
+                has_zero_balance.then(|| {
+                    app::Message::Routes(super::Message::BitcoinWalletPage(
+                        Message::LeaveFederation(self.view.federation_id),
+                    ))
+                }),
+            ),
+        );
 
         container = container.push(
             icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(

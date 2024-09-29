@@ -175,7 +175,7 @@ impl Wallet {
 
     pub async fn connect_to_joined_federations(&self) -> anyhow::Result<()> {
         // Note: We're intentionally locking the clients mutex earlier than
-        // necessary so that the lock is held while we're reading the data directory.
+        // necessary so that the lock is held while we're accessing the data directory.
         let mut clients = self.clients.lock().await;
 
         // List all files in the data directory.
@@ -217,7 +217,7 @@ impl Wallet {
 
     pub async fn join_federation(&self, invite_code: InviteCode) -> anyhow::Result<()> {
         // Note: We're intentionally locking the clients mutex earlier than
-        // necessary so that the lock is held while we're reading the data directory.
+        // necessary so that the lock is held while we're accessing the data directory.
         let mut clients = self.clients.lock().await;
 
         let federation_id = invite_code.federation_id();
@@ -236,6 +236,42 @@ impl Wallet {
         let client = self.build_client_from_invite_code(invite_code, db).await?;
 
         clients.insert(federation_id, client);
+
+        self.force_update_view(clients).await;
+
+        Ok(())
+    }
+
+    // TODO: Call `ClientModule::leave()` for every module.
+    // https://docs.rs/fedimint-client/0.4.2/fedimint_client/module/trait.ClientModule.html#method.leave
+    // Currently it isn't implemented for the `LightningClientModule`, so for now we're just checking
+    // that the client has a zero balance.
+    pub async fn leave_federation(&self, federation_id: FederationId) -> anyhow::Result<()> {
+        // Note: We're intentionally locking the clients mutex earlier than
+        // necessary so that the lock is held while we're accessing the data directory.
+        let mut clients = self.clients.lock().await;
+
+        if let Some(client) = clients.remove(&federation_id) {
+            if client.get_balance().await.msats != 0 {
+                // Re-insert the client back into the clients map.
+                clients.insert(federation_id, client);
+
+                return Err(anyhow::anyhow!(
+                    "Cannot leave federation with non-zero balance: {}",
+                    federation_id
+                ));
+            }
+
+            client.shutdown().await;
+
+            let federation_data_dir = self
+                .fedimint_clients_data_dir
+                .join(federation_id.to_string());
+
+            if federation_data_dir.is_dir() {
+                std::fs::remove_dir_all(federation_data_dir)?;
+            }
+        }
 
         self.force_update_view(clients).await;
 
