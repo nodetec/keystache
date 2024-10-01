@@ -74,7 +74,7 @@ impl Page {
                             wallet_clone.connect_to_joined_federations().await.unwrap();
                         });
 
-                        let nostr_module = NostrModule::new();
+                        let nostr_module = NostrModule::default();
 
                         // TODO: Add pagination.
                         let relays = db.list_relays(999, 0).unwrap();
