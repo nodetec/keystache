@@ -17,18 +17,12 @@ pub enum NostrModuleMessage {
     DisconnectFromRelay(String),
 }
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct NostrModule {
     client: nostr_sdk::Client,
 }
 
 impl NostrModule {
-    pub fn new() -> Self {
-        Self {
-            client: nostr_sdk::Client::default(),
-        }
-    }
-
     pub fn update(&self, message: NostrModuleMessage) {
         match message {
             NostrModuleMessage::ConnectToRelay(url) => {
