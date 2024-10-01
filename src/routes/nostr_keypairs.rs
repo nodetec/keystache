@@ -12,7 +12,7 @@ use secp256k1::Secp256k1;
 
 use crate::{
     app,
-    ui_components::{icon_button, PaletteColor, SvgIcon},
+    ui_components::{icon_button, PaletteColor, SvgIcon, Toast, ToastStatus},
     util::truncate_text,
 };
 
@@ -33,12 +33,18 @@ pub struct Page {
 impl Page {
     pub fn update(&mut self, msg: Message) -> Task<app::Message> {
         match msg {
-            Message::SaveKeypair(keypair) => {
-                // TODO: Surface this error to the UI.
-                let _ = self.connected_state.db.save_keypair(&keypair);
-
-                Task::none()
-            }
+            Message::SaveKeypair(keypair) => match self.connected_state.db.save_keypair(&keypair) {
+                Ok(()) => Task::done(app::Message::AddToast(Toast {
+                    title: "Saved keypair".to_string(),
+                    body: "The keypair was successfully saved.".to_string(),
+                    status: ToastStatus::Good,
+                })),
+                Err(_err) => Task::done(app::Message::AddToast(Toast {
+                    title: "Failed to save keypair".to_string(),
+                    body: "The keypair was not saved.".to_string(),
+                    status: ToastStatus::Bad,
+                })),
+            },
             Message::SaveKeypairNsecInputChanged(new_nsec) => {
                 if let Subroute::Add(Add {
                     nsec, keypair_or, ..
@@ -55,10 +61,18 @@ impl Page {
                 Task::none()
             }
             Message::DeleteKeypair { public_key } => {
-                // TODO: Surface this error to the UI.
-                _ = self.connected_state.db.remove_keypair(&public_key);
-
-                Task::none()
+                match self.connected_state.db.remove_keypair(&public_key) {
+                    Ok(()) => Task::done(app::Message::AddToast(Toast {
+                        title: "Deleted keypair".to_string(),
+                        body: "The keypair was successfully deleted.".to_string(),
+                        status: ToastStatus::Good,
+                    })),
+                    Err(_err) => Task::done(app::Message::AddToast(Toast {
+                        title: "Failed to delete keypair".to_string(),
+                        body: "The keypair was not deleted.".to_string(),
+                        status: ToastStatus::Bad,
+                    })),
+                }
             }
         }
     }

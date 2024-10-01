@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, sync::Arc};
 use fedimint_core::config::FederationId;
 use iced::{
     futures::StreamExt,
-    widget::{column, container, row, scrollable},
+    widget::{column, container, row, scrollable, stack},
     Element, Length, Task,
 };
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
@@ -14,7 +14,7 @@ use crate::{
     fedimint::{FederationView, Wallet},
     nostr::{NostrModuleMessage, NostrState},
     routes::{self, bitcoin_wallet, unlock, Loadable, Route, RouteName},
-    ui_components::sidebar,
+    ui_components::{sidebar, Toast, ToastManager, ToastStatus},
 };
 
 #[derive(Debug, Clone)]
@@ -39,16 +39,21 @@ pub enum Message {
     ),
     ApproveFirstIncomingNip46Request,
     RejectFirstIncomingNip46Request,
+
+    AddToast(Toast),
+    CloseToast(usize),
 }
 
 pub struct App {
     pub page: Route,
+    toasts: Vec<Toast>,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             page: Route::new_locked(),
+            toasts: Vec::new(),
         }
     }
 }
@@ -97,10 +102,18 @@ impl App {
                 Task::none()
             }
             Message::CopyStringToClipboard(text) => {
-                // TODO: Display a toast stating whether the copy succeeded or failed.
-                let _ = arboard::Clipboard::new().map(|mut clipboard| clipboard.set_text(text));
-
-                Task::none()
+                match arboard::Clipboard::new().map(|mut clipboard| clipboard.set_text(text)) {
+                    Ok(_) => Task::done(Message::AddToast(Toast {
+                        title: "Copied to clipboard".to_string(),
+                        body: "The text has been copied to your clipboard.".to_string(),
+                        status: ToastStatus::Good,
+                    })),
+                    Err(e) => Task::done(Message::AddToast(Toast {
+                        title: "Failed to copy to clipboard".to_string(),
+                        body: e.to_string(),
+                        status: ToastStatus::Bad,
+                    })),
+                }
             }
             Message::IncomingNip46Request(data) => {
                 if let Some(connected_state) = self.page.get_connected_state_mut() {
@@ -129,6 +142,16 @@ impl App {
 
                 Task::none()
             }
+            Message::AddToast(toast) => {
+                self.toasts.push(toast);
+
+                Task::none()
+            }
+            Message::CloseToast(index) => {
+                self.toasts.remove(index);
+
+                Task::none()
+            }
         }
     }
 
@@ -143,7 +166,11 @@ impl App {
             content = Element::new(row![sidebar(self), content]);
         };
 
-        container(content).center_y(Length::Fill).into()
+        let content: Element<_, _, _> = container(content).center_y(Length::Fill).into();
+        let toast_manager: Element<_, _, _> =
+            ToastManager::new(&self.toasts, Message::CloseToast).into();
+
+        stack![content, toast_manager].into()
     }
 
     pub fn subscription(&self) -> iced::Subscription<Message> {
