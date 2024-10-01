@@ -17,10 +17,9 @@ use crate::{
     fedimint::FederationView,
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::{format_amount, lighten, truncate_text},
-    ConnectedState,
 };
 
-use super::{container, Loadable, RouteName};
+use super::{container, ConnectedState, Loadable, RouteName};
 
 mod receive;
 mod send;

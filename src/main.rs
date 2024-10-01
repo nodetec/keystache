@@ -13,23 +13,13 @@ mod routes;
 mod ui_components;
 mod util;
 
-use std::collections::{BTreeMap, VecDeque};
-use std::fmt::Debug;
-use std::sync::Arc;
-
 use app::App;
-use db::Database;
 
-use fedimint::{FederationView, Wallet};
-use fedimint_core::config::FederationId;
+use fedimint::Wallet;
 use iced::widget::Theme;
 use iced::window::settings::PlatformSpecific;
 use iced::window::Settings;
 use iced::Size;
-use nip_55::nip_46::Nip46RequestApproval;
-use nostr::{NostrModule, NostrState};
-use nostr_sdk::PublicKey;
-use routes::Loadable;
 
 fn main() -> iced::Result {
     tracing_subscriber::fmt::init();
@@ -58,28 +48,4 @@ fn main() -> iced::Result {
             exit_on_close_request: true,
         })
         .run()
-}
-
-#[derive(Clone)]
-struct ConnectedState {
-    db: Arc<Database>,
-    wallet: Arc<Wallet>,
-    #[allow(clippy::type_complexity)]
-    in_flight_nip46_requests: VecDeque<
-        Arc<(
-            Vec<nostr_sdk::nips::nip46::Request>,
-            PublicKey,
-            iced::futures::channel::oneshot::Sender<Nip46RequestApproval>,
-        )>,
-    >,
-    loadable_federation_views: Loadable<BTreeMap<FederationId, FederationView>>,
-    nostr_module: NostrModule,
-    nostr_state: NostrState,
-}
-
-// TODO: Clean up this implementation.
-impl Debug for ConnectedState {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ConnectedState")
-    }
 }
