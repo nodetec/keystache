@@ -14,10 +14,9 @@ use crate::{
     app,
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::truncate_text,
-    ConnectedState,
 };
 
-use super::{container, RouteName};
+use super::{container, ConnectedState, RouteName};
 
 #[derive(Debug, Clone)]
 pub enum Message {

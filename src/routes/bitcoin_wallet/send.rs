@@ -12,10 +12,9 @@ use crate::{
     fedimint::{FederationView, Wallet},
     routes::{self, container, Loadable, RouteName},
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState,
 };
 
-use super::SubrouteName;
+use super::{ConnectedState, SubrouteName};
 
 #[derive(Debug, Clone)]
 pub enum Message {

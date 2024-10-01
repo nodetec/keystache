@@ -6,10 +6,9 @@ use iced::{
 use crate::{
     app,
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState,
 };
 
-use super::{container, RouteName};
+use super::{container, ConnectedState, RouteName};
 
 // TODO: Remove this clippy allow once we have more variants.
 #[allow(clippy::enum_variant_names)]

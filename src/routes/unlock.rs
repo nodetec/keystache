@@ -12,10 +12,10 @@ use crate::{
     db::Database,
     nostr::{NostrModule, NostrModuleMessage, NostrState},
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState, Wallet,
+    Wallet,
 };
 
-use super::{container, Loadable};
+use super::{container, ConnectedState, Loadable};
 
 #[derive(Debug, Clone)]
 pub enum Message {

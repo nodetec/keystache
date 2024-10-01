@@ -1,13 +1,23 @@
+use std::{
+    collections::{BTreeMap, VecDeque},
+    fmt::Debug,
+    sync::Arc,
+};
+
+use fedimint_core::config::FederationId;
 use iced::{
     widget::{column, row, text, Column, Text},
     Alignment, Element, Task,
 };
+use nip_55::nip_46::Nip46RequestApproval;
+use nostr_sdk::PublicKey;
 
 use crate::{
     app,
     db::Database,
+    fedimint::{FederationView, Wallet},
+    nostr::{NostrModule, NostrState},
     ui_components::{icon_button, PaletteColor, SvgIcon},
-    ConnectedState,
 };
 
 pub mod bitcoin_wallet;
@@ -16,6 +26,30 @@ pub mod nostr_keypairs;
 pub mod nostr_relays;
 pub mod settings;
 pub mod unlock;
+
+#[derive(Clone)]
+pub struct ConnectedState {
+    pub db: Arc<Database>,
+    pub wallet: Arc<Wallet>,
+    #[allow(clippy::type_complexity)]
+    pub in_flight_nip46_requests: VecDeque<
+        Arc<(
+            Vec<nostr_sdk::nips::nip46::Request>,
+            PublicKey,
+            iced::futures::channel::oneshot::Sender<Nip46RequestApproval>,
+        )>,
+    >,
+    pub loadable_federation_views: Loadable<BTreeMap<FederationId, FederationView>>,
+    pub nostr_module: NostrModule,
+    pub nostr_state: NostrState,
+}
+
+// TODO: Clean up this implementation.
+impl Debug for ConnectedState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "ConnectedState")
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Message {
