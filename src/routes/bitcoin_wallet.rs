@@ -15,7 +15,7 @@ use iced::{
 use crate::{
     app,
     fedimint::{FederationView, WalletView},
-    ui_components::{icon_button, PaletteColor, SvgIcon},
+    ui_components::{icon_button, PaletteColor, SvgIcon, Toast, ToastStatus},
     util::{format_amount, lighten, truncate_text},
 };
 
@@ -40,7 +40,7 @@ pub enum Message {
     },
 
     JoinFederation(InviteCode),
-    ConnectedToFederation,
+    JoinedFederation(InviteCode),
 
     Send(send::Message),
     Receive(receive::Message),
@@ -159,15 +159,40 @@ impl Page {
             Message::JoinFederation(invite_code) => {
                 let wallet = self.connected_state.wallet.clone();
 
-                Task::future(async move {
-                    wallet.join_federation(invite_code).await.unwrap();
-                    app::Message::Routes(super::Message::BitcoinWalletPage(
-                        Message::ConnectedToFederation,
-                    ))
+                Task::stream(async_stream::stream! {
+                    match wallet.join_federation(invite_code.clone()).await {
+                        Ok(()) => {
+                            yield app::Message::AddToast(Toast {
+                                title: "Joined federation".to_string(),
+                                body: "You have successfully joined the federation.".to_string(),
+                                status: ToastStatus::Good,
+                            });
+
+                            yield app::Message::Routes(super::Message::BitcoinWalletPage(
+                                Message::JoinedFederation(invite_code)
+                            ));
+                        }
+                        Err(err) => {
+                            yield app::Message::AddToast(Toast {
+                                title: "Failed to join federation".to_string(),
+                                body: format!("Failed to join the federation: {err}"),
+                                status: ToastStatus::Bad,
+                            });
+                        }
+                    }
                 })
             }
-            Message::ConnectedToFederation => {
-                // TODO: Do something here, or remove `ConnectedToFederation` message variant.
+            Message::JoinedFederation(invite_code) => {
+                // A verbose way of saying "if the user is currently on the Add page and the invite code matches the one that was just joined, navigate back to the List page".
+                if let Subroute::Add(add) = &self.subroute {
+                    if let Some(invite_code_state) = &add.parsed_federation_invite_code_state_or {
+                        if invite_code_state.invite_code == invite_code {
+                            return Task::done(app::Message::Routes(super::Message::Navigate(
+                                RouteName::BitcoinWallet(SubrouteName::List),
+                            )));
+                        }
+                    }
+                }
 
                 Task::none()
             }
