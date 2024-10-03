@@ -185,9 +185,7 @@ impl App {
             // outer `stream!` is created on every update, but will only be polled if the subscription
             // ID is new.
             async_stream::stream! {
-                let mut stream = wallet
-                    .get_update_stream()
-                    .map(Message::UpdateWalletView);
+                let mut stream = wallet.get_update_stream().map(Message::UpdateWalletView);
 
                 while let Some(msg) = stream.next().await {
                     yield msg;
