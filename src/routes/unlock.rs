@@ -84,7 +84,7 @@ impl Page {
                                 db,
                                 wallet,
                                 in_flight_nip46_requests: VecDeque::new(),
-                                loadable_federation_views: Loadable::Loading,
+                                loadable_wallet_view: Loadable::Loading,
                                 nostr_module,
                                 nostr_state: NostrState::default(),
                             }),

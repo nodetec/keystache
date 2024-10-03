@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, str::FromStr, sync::Arc};
+use std::{str::FromStr, sync::Arc};
 
 use fedimint_core::config::FederationId;
 use iced::{
@@ -9,7 +9,7 @@ use lightning_invoice::Bolt11Invoice;
 
 use crate::{
     app,
-    fedimint::{FederationView, Wallet},
+    fedimint::{FederationView, Wallet, WalletView},
     routes::{self, container, Loadable, RouteName},
     ui_components::{icon_button, PaletteColor, SvgIcon, Toast, ToastStatus},
 };
@@ -27,7 +27,7 @@ pub enum Message {
     PayInvoiceSucceeded(Bolt11Invoice),
     PayInvoiceFailed((Bolt11Invoice, Arc<anyhow::Error>)),
 
-    UpdateFederationViews(BTreeMap<FederationId, FederationView>),
+    UpdateWalletView(WalletView),
 }
 
 pub struct Page {
@@ -45,9 +45,10 @@ impl Page {
             lightning_invoice_input: String::new(),
             federation_combo_box_state: combo_box::State::new(
                 connected_state
-                    .loadable_federation_views
+                    .loadable_wallet_view
                     .as_ref_option()
                     .cloned()
+                    .map(|wallet_view| wallet_view.federations)
                     .unwrap_or_default()
                     .into_values()
                     .collect(),
@@ -114,18 +115,19 @@ impl Page {
                     status: ToastStatus::Bad,
                 }))
             }
-            Message::UpdateFederationViews(federation_views) => {
+            Message::UpdateWalletView(wallet_view) => {
                 self.federation_combo_box_selected_federation = self
                     .federation_combo_box_selected_federation
                     .as_ref()
                     .and_then(|selected_federation| {
-                        federation_views
+                        wallet_view
+                            .federations
                             .get(&selected_federation.federation_id)
                             .cloned()
                     });
 
                 self.federation_combo_box_state =
-                    combo_box::State::new(federation_views.into_values().collect());
+                    combo_box::State::new(wallet_view.federations.into_values().collect());
 
                 Task::none()
             }

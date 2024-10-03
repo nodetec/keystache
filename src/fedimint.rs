@@ -44,6 +44,11 @@ pub enum LightningReceiveCompletion {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WalletView {
+    pub federations: BTreeMap<FederationId, FederationView>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FederationView {
     pub federation_id: FederationId,
     pub name_or: Option<String>,
@@ -82,8 +87,7 @@ impl Wallet {
     // TODO: Optimize this. Repeated polling is not ideal.
     pub fn get_update_stream(
         &self,
-    ) -> Pin<Box<dyn iced::futures::Stream<Item = BTreeMap<FederationId, FederationView>> + Send>>
-    {
+    ) -> Pin<Box<dyn iced::futures::Stream<Item = WalletView> + Send>> {
         let clients = self.clients.clone();
         Box::pin(async_stream::stream! {
             let mut last_state_or = None;
@@ -177,14 +181,14 @@ impl Wallet {
 
     async fn get_current_state(
         clients: MutexGuard<'_, HashMap<FederationId, ClientHandle>>,
-    ) -> BTreeMap<FederationId, FederationView> {
-        let mut state = BTreeMap::new();
+    ) -> WalletView {
+        let mut federations = BTreeMap::new();
 
         for (federation_id, client) in clients.iter() {
             let lightning_module = client.get_first_module::<LightningClientModule>();
             let gateways = lightning_module.list_gateways().await;
 
-            state.insert(
+            federations.insert(
                 *federation_id,
                 FederationView {
                     federation_id: *federation_id,
@@ -200,7 +204,7 @@ impl Wallet {
             );
         }
 
-        state
+        WalletView { federations }
     }
 
     pub async fn pay_invoice(

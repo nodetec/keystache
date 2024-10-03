@@ -1,7 +1,7 @@
-use std::{collections::BTreeMap, str::FromStr};
+use std::str::FromStr;
 
 use fedimint_core::{
-    config::{ClientConfig, FederationId, META_FEDERATION_NAME_KEY},
+    config::{ClientConfig, META_FEDERATION_NAME_KEY},
     invite_code::InviteCode,
     Amount,
 };
@@ -14,7 +14,7 @@ use iced::{
 
 use crate::{
     app,
-    fedimint::FederationView,
+    fedimint::{FederationView, WalletView},
     ui_components::{icon_button, PaletteColor, SvgIcon},
     util::{format_amount, lighten, truncate_text},
 };
@@ -45,7 +45,7 @@ pub enum Message {
     Send(send::Message),
     Receive(receive::Message),
 
-    UpdateFederationViews(BTreeMap<FederationId, FederationView>),
+    UpdateWalletView(WalletView),
 }
 
 pub struct Page {
@@ -185,12 +185,12 @@ impl Page {
                     Task::none()
                 }
             }
-            Message::UpdateFederationViews(federation_views) => match &mut self.subroute {
+            Message::UpdateWalletView(wallet_view) => match &mut self.subroute {
                 Subroute::Send(send_page) => {
-                    send_page.update(send::Message::UpdateFederationViews(federation_views))
+                    send_page.update(send::Message::UpdateWalletView(wallet_view))
                 }
                 Subroute::Receive(receive_page) => {
-                    receive_page.update(receive::Message::UpdateFederationViews(federation_views))
+                    receive_page.update(receive::Message::UpdateWalletView(wallet_view))
                 }
                 _ => Task::none(),
             },
@@ -266,17 +266,18 @@ impl List {
     fn view<'a>(&self, connected_state: &ConnectedState) -> Column<'a, app::Message> {
         let mut container = container("Wallet");
 
-        match &connected_state.loadable_federation_views {
+        match &connected_state.loadable_wallet_view {
             Loadable::Loading => {
                 container = container.push(Text::new("Loading federations...").size(25));
             }
-            Loadable::Loaded(views) => {
+            Loadable::Loaded(wallet_view) => {
                 container = container
                     .push(
                         Text::new(format_amount(Amount::from_msats(
-                            views
-                                .iter()
-                                .map(|(_federation_id, view)| view.balance.msats)
+                            wallet_view
+                                .federations
+                                .values()
+                                .map(|view| view.balance.msats)
                                 .sum::<u64>(),
                         )))
                         .size(35),
@@ -295,7 +296,7 @@ impl List {
                     ])
                     .push(Text::new("Federations").size(25));
 
-                for view in views.values() {
+                for view in wallet_view.federations.values() {
                     let column: Column<_, Theme, _> = Column::new()
                         .push(
                             Text::new(
