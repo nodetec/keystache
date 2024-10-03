@@ -1,6 +1,5 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::sync::Arc;
 
-use fedimint_core::config::FederationId;
 use iced::{
     futures::StreamExt,
     widget::{column, container, row, scrollable, stack},
@@ -11,7 +10,7 @@ use nostr_sdk::PublicKey;
 
 use crate::{
     db::Database,
-    fedimint::{FederationView, Wallet},
+    fedimint::{Wallet, WalletView},
     nostr::{NostrModuleMessage, NostrState},
     routes::{self, bitcoin_wallet, unlock, Loadable, Route, RouteName},
     ui_components::{sidebar, Toast, ToastManager, ToastStatus},
@@ -23,7 +22,7 @@ pub enum Message {
 
     DbDeleteAllData,
 
-    UpdateFederationViews(BTreeMap<FederationId, FederationView>),
+    UpdateWalletView(WalletView),
 
     NostrModule(NostrModuleMessage),
     UpdateNostrState(NostrState),
@@ -73,16 +72,13 @@ impl App {
 
                 Task::none()
             }
-            Message::UpdateFederationViews(federation_views) => {
+            Message::UpdateWalletView(wallet_view) => {
                 if let Some(connected_state) = self.page.get_connected_state_mut() {
-                    connected_state.loadable_federation_views =
-                        Loadable::Loaded(federation_views.clone());
+                    connected_state.loadable_wallet_view = Loadable::Loaded(wallet_view.clone());
                 }
 
                 if let Route::BitcoinWallet(bitcoin_wallet) = &mut self.page {
-                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateFederationViews(
-                        federation_views,
-                    ))
+                    bitcoin_wallet.update(bitcoin_wallet::Message::UpdateWalletView(wallet_view))
                 } else {
                     Task::none()
                 }
@@ -191,7 +187,7 @@ impl App {
             async_stream::stream! {
                 let mut stream = wallet
                     .get_update_stream()
-                    .map(Message::UpdateFederationViews);
+                    .map(Message::UpdateWalletView);
 
                 while let Some(msg) = stream.next().await {
                     yield msg;

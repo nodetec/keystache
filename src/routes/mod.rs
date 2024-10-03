@@ -1,10 +1,5 @@
-use std::{
-    collections::{BTreeMap, VecDeque},
-    fmt::Debug,
-    sync::Arc,
-};
+use std::{collections::VecDeque, fmt::Debug, sync::Arc};
 
-use fedimint_core::config::FederationId;
 use iced::{
     widget::{column, row, text, Column, Text},
     Alignment, Element, Task,
@@ -15,7 +10,7 @@ use nostr_sdk::PublicKey;
 use crate::{
     app,
     db::Database,
-    fedimint::{FederationView, Wallet},
+    fedimint::{Wallet, WalletView},
     nostr::{NostrModule, NostrState},
     ui_components::{icon_button, PaletteColor, SvgIcon},
 };
@@ -39,7 +34,7 @@ pub struct ConnectedState {
             iced::futures::channel::oneshot::Sender<Nip46RequestApproval>,
         )>,
     >,
-    pub loadable_federation_views: Loadable<BTreeMap<FederationId, FederationView>>,
+    pub loadable_wallet_view: Loadable<WalletView>,
     pub nostr_module: NostrModule,
     pub nostr_state: NostrState,
 }
