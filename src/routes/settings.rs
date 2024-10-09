@@ -239,7 +239,7 @@ impl About {
             .push(Text::new("Description").size(25))
             .push(Text::new("Keystache is a Nostr single-sign-on key management and Fedimint Bitcoin wallet created by Tommy Volk and generously funded by OpenSats").size(15))
             .push(Text::new("Source Code").size(25))
-            .push(Text::new("https://github.com/Open-Source-Justice-Foundation/Keystache").size(15))
+            .push(Text::new("https://github.com/nodetec/keystache").size(15))
             .push(Text::new("Version").size(25))
             .push(Text::new(env!("CARGO_PKG_VERSION")).size(15))
             .push(icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
