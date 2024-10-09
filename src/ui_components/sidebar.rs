@@ -36,11 +36,11 @@ pub fn sidebar(keystache: &app::App) -> Element<app::Message> {
             sidebar_button(
                 "Wallet",
                 SvgIcon::CurrencyBitcoin,
-                &RouteName::BitcoinWallet(bitcoin_wallet::SubrouteName::List),
+                &RouteName::BitcoinWallet(bitcoin_wallet::SubrouteName::Main),
                 keystache
             )
             .on_press(app::Message::Routes(routes::Message::Navigate(
-                RouteName::BitcoinWallet(bitcoin_wallet::SubrouteName::List)
+                RouteName::BitcoinWallet(bitcoin_wallet::SubrouteName::Main)
             ))),
             vertical_space(),
             sidebar_button(

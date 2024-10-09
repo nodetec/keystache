@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use iced::{
     futures::StreamExt,
-    widget::{column, container, row, scrollable, stack},
+    widget::{column, container, row, stack},
     Element, Length, Task,
 };
 use nip_55::nip_46::{Nip46OverNip55ServerStream, Nip46RequestApproval};
@@ -154,9 +154,9 @@ impl App {
     pub fn view(&self) -> Element<Message> {
         let Self { page, .. } = self;
 
-        let mut content: Element<Message> = Element::new(scrollable(
+        let mut content: Element<Message> = Element::new(
             container(column![page.view()].spacing(20).padding(20)).center_x(Length::Fill),
-        ));
+        );
 
         if page.to_name() != RouteName::Unlock {
             content = Element::new(row![sidebar(self), content]);

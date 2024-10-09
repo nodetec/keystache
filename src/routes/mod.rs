@@ -22,6 +22,7 @@ pub mod nostr_relays;
 pub mod settings;
 pub mod unlock;
 
+// TODO: Is this actually safe to clone? I think we need to wrap all fields in `Arc`s.
 #[derive(Clone)]
 pub struct ConnectedState {
     pub db: Arc<Database>,

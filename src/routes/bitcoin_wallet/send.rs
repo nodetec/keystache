@@ -186,7 +186,7 @@ impl Page {
         container = container.push(
             icon_button("Back", SvgIcon::ArrowBack, PaletteColor::Background).on_press(
                 app::Message::Routes(routes::Message::Navigate(RouteName::BitcoinWallet(
-                    SubrouteName::List,
+                    SubrouteName::Main,
                 ))),
             ),
         );
