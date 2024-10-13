@@ -46,7 +46,7 @@ impl NostrModule {
     pub fn subscription(&self) -> Subscription<NostrState> {
         const POLL_DURATION: Duration = Duration::from_millis(200);
 
-        let client = self.client.clone();
+        let self_clone = self.clone();
 
         Subscription::run_with_id(
             std::any::TypeId::of::<NostrState>(),
@@ -57,7 +57,7 @@ impl NostrModule {
             async_stream::stream! {
                 let mut last_state = NostrState::default();
                 loop {
-                    let new_state = Self::get_state(&client).await;
+                    let new_state = self_clone.get_state().await;
                     if new_state != last_state {
                         yield new_state.clone();
                         last_state = new_state;
@@ -72,10 +72,10 @@ impl NostrModule {
     /// Fetches the current state of the Nostr SDK client.
     /// Note: This is async because it's grabbing read locks
     /// on the relay `RwLock`s. No network requests are made.
-    async fn get_state(client: &nostr_sdk::Client) -> NostrState {
+    async fn get_state(&self) -> NostrState {
         let mut relay_connections = BTreeMap::new();
 
-        for (url, relay) in client.relays().await {
+        for (url, relay) in self.client.relays().await {
             relay_connections.insert(url.clone(), relay.status().await);
         }
 
